@@ -1,0 +1,12 @@
+<?php
+$host = "sql110.infinityfree.com";  // Correct host for InfinityFree
+$user = "if0_40217329";             // MySQL username from InfinityFree
+$pass = "dragoon870973";            // MySQL password
+$db   = "if0_40217329_php_expense"; // Your database name
+
+$conn = mysqli_connect("sql110.infinityfree.com", "if0_40217329", "dragoon070973", "if0_40217329_php_expense");
+
+if (!$conn) {
+    die("Database connection failed: " . mysqli_connect_error());
+}
+?>
