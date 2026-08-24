@@ -47,6 +47,13 @@ function setAlert($type, $message) {
 }
 
 /* -------------------------------
+   CSRF TOKEN
+--------------------------------*/
+if (!isset($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+
+/* -------------------------------
    SAMPLE COMMENT
 --------------------------------*/
 if (isset($_GET['success'])) {
@@ -135,6 +142,21 @@ if (
         exit();
     }
 
+        // Fetch payee and company BEFORE deleting
+    $logInfoStmt = $conn->prepare("
+        SELECT p.payee_name, c.company_name
+        FROM expenses e
+        JOIN payees p ON e.expense_payee_id = p.payee_id
+        JOIN companies c ON e.expense_company_id = c.company_id
+        WHERE e.expense_id = ?
+    ");
+    $logInfoStmt->bind_param("i", $deleteId);
+    $logInfoStmt->execute();
+    $logInfoRow = $logInfoStmt->get_result()->fetch_assoc();
+    $logInfoStmt->close();
+    $payeeNameLog = $logInfoRow['payee_name'] ?? 'Unknown Payee';
+    $companyNameLog = $logInfoRow['company_name'] ?? 'Unknown Company';
+
     $deleteStmt = $conn->prepare("DELETE FROM expenses WHERE expense_id = ?");
     $deleteStmt->bind_param("i", $deleteId);
 
@@ -148,7 +170,7 @@ if (
         ");
 
         $logAction = "Expense deleted";
-        $logDetails = "Expense ID: $deleteId";
+        $logDetails = "Payee: $payeeNameLog, Company: $companyNameLog (Expense ID: $deleteId)";
 
         $logStmt->bind_param("sss", $logAction, $username, $logDetails);
         $logStmt->execute();
@@ -166,13 +188,6 @@ if (
 
     header("Location: " . $_SERVER['PHP_SELF'] . (!empty($_GET) ? '?' . http_build_query($_GET) : ''));
     exit();
-}
-
-/* -------------------------------
-   CSRF TOKEN
---------------------------------*/
-if (!isset($_SESSION['csrf_token'])) {
-    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
 
 /* -------------------------------
@@ -693,7 +708,7 @@ data-href="expense_view.php?id=<?= $row['expense_id'] ?>"
 <?php else: ?>
 
 <tr>
-<td colspan="8">
+<td colspan="6">
 
 <div class="empty-state">
 
@@ -724,7 +739,7 @@ Try adjusting the date range or create a new expense.
 $paginationParams = $_GET;
 unset($paginationParams['page']);
 $baseUrl = '?' . http_build_query($paginationParams);
-$baseUrl .= $paginationParams ? '&' : '';
+$baseUrl .= !empty($paginationParams) ? '&' : '';
 ?>
 
 <?php if ($totalPages > 1): ?>

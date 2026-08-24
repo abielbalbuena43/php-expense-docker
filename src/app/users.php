@@ -100,27 +100,18 @@ $is_admin_view = true;
         <div class="container-fluid">
             <!-- Header Actions -->
             <div class="header-actions">
-                <?php if ($is_admin_view): ?>
-                    <h3>Users List</h3>
-                    <a href="users_new.php" class="btn btn-success">
-                        <i class="icon-plus"></i>
-                        Create New User
-                    </a>
-                <?php else: ?>
-                    <h3>My Profile</h3>
-                <?php endif; ?>
+                <a href="users_new.php" class="btn btn-success">
+                    <i class="icon-plus"></i>
+                    Create New User
+                </a>
             </div>
 
             <!-- Main Table -->
             <div class="table-container">
                 <div class="table-header">
+                    <h3>Users List</h3>
                     <span class="table-stats">
-                        <?php if ($is_admin_view): ?>
-                            All System Users
-                        <?php else: ?>
-                            Your Account Details
-                        <?php endif; ?>
-                        - Showing <?= $result->num_rows ?? 0 ?> record(s)
+                        Showing <?= $result->num_rows ?? 0 ?> records
                     </span>
                 </div>
 
@@ -132,9 +123,6 @@ $is_admin_view = true;
                                 <th>Full Name</th>
                                 <th>Role</th>
                                 <th>Date Created</th>
-                                <?php if ($is_admin_view): ?>
-                                    <th>Actions</th>
-                                <?php endif; ?>
                             </tr>
                         </thead>
 
@@ -158,21 +146,12 @@ $is_admin_view = true;
                                         </td>
                                         <td><?= date('M d, Y H:i', strtotime($row['created_at'])) ?></td>
 
-                                        <?php if ($is_admin_view): ?>
-                                            <td>
-                                                <a href="users_edit.php?id=<?= $row['user_id'] ?>" class="btn btn-sm btn-primary">
-                                                    <i class="fas fa-edit"></i> Edit
-                                                </a>
-                                                <a href="users_delete.php?id=<?= $row['user_id'] ?>" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure you want to delete this user?');">
-                                                    <i class="fas fa-trash"></i> Delete
-                                                </a>
-                                            </td>
-                                        <?php endif; ?>
+                                        
                                     </tr>
                                 <?php endwhile; ?>
                             <?php else: ?>
                                 <tr>
-                                    <td colspan="<?= $is_admin_view ? 5 : 4 ?>" style="text-align:center;">No users found.</td>
+                                    <td colspan="4" style="text-align:center;">No users found.</td>
                                 </tr>
                             <?php endif; ?>
                         </tbody>

@@ -5,6 +5,12 @@ ob_start();
 session_start();
 include "../app/connection.php";
 
+// Redirect if already logged in
+if (isset($_SESSION['user_id'])) {
+    header("Location: dashboard.php");
+    exit();
+}
+
 // Note: In a real production environment, use Prepared Statements to prevent SQL Injection
 if (isset($_POST['login'])) {
 

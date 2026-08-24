@@ -17,13 +17,30 @@ if (!$isSuperAdmin) {
     exit();
 }
 
+// Search filter
+$searchQuery = trim($_GET['search'] ?? '');
+
 // Pagination variables
 $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
 $recordsPerPage = 20;
 $offset = ($page - 1) * $recordsPerPage;
 
+// Build WHERE clause
+$whereClause = "";
+$searchParam = "";
+if (!empty($searchQuery)) {
+    $whereClause = "WHERE log_action LIKE ? OR log_user = ? OR log_details LIKE ?";
+    $searchParam = "%" . $searchQuery . "%";
+    $exactParam = $searchQuery;
+}
+
 // Get total number of records
-$totalStmt = $conn->prepare("SELECT COUNT(*) as total FROM logs");
+if (!empty($searchQuery)) {
+    $totalStmt = $conn->prepare("SELECT COUNT(*) as total FROM logs $whereClause");
+    $totalStmt->bind_param("sss", $searchParam, $exactParam, $searchParam);
+} else {
+    $totalStmt = $conn->prepare("SELECT COUNT(*) as total FROM logs");
+}
 $totalStmt->execute();
 $totalResult = $totalStmt->get_result();
 $totalRow = $totalResult->fetch_assoc();
@@ -34,13 +51,24 @@ $totalStmt->close();
 $totalPages = ceil($totalRecords / $recordsPerPage);
 
 // Fetch paginated logs
-$logsStmt = $conn->prepare("
-    SELECT log_id, log_action, log_user, log_details, log_date
-    FROM logs
-    ORDER BY log_date DESC
-    LIMIT ? OFFSET ?
-");
-$logsStmt->bind_param("ii", $recordsPerPage, $offset);
+if (!empty($searchQuery)) {
+    $logsStmt = $conn->prepare("
+        SELECT log_id, log_action, log_user, log_details, log_date
+        FROM logs
+        $whereClause
+        ORDER BY log_date DESC
+        LIMIT ? OFFSET ?
+    ");
+    $logsStmt->bind_param("sssii", $searchParam, $exactParam, $searchParam, $recordsPerPage, $offset);
+} else {
+    $logsStmt = $conn->prepare("
+        SELECT log_id, log_action, log_user, log_details, log_date
+        FROM logs
+        ORDER BY log_date DESC
+        LIMIT ? OFFSET ?
+    ");
+    $logsStmt->bind_param("ii", $recordsPerPage, $offset);
+}
 $logsStmt->execute();
 $logsResult = $logsStmt->get_result();
 $logsStmt->close();
@@ -61,6 +89,23 @@ $logsStmt->close();
                 </span>
             </div>
 
+            <!-- Search Bar -->
+            <form method="get" style="margin-bottom:15px;">
+                <div style="display:flex; gap:10px; align-items:center; max-width:500px;">
+                    <input
+                        type="text"
+                        name="search"
+                        value="<?= htmlspecialchars($searchQuery) ?>"
+                        placeholder="Search by action, user, or details..."
+                        style="flex:1; padding:10px 12px; border:1px solid #ccc; border-radius:3px; font-size:14px;"
+                    >
+                    <button type="submit" class="btn btn-primary">Search</button>
+                    <?php if (!empty($searchQuery)): ?>
+                    <a href="logs.php" class="btn btn-secondary">Clear</a>
+                    <?php endif; ?>
+                </div>
+            </form>
+
             <div class="table-responsive">
                 <table class="table table-bordered table-striped">
                     <thead>
@@ -74,8 +119,19 @@ $logsStmt->close();
                     <tbody>
                         <?php if ($logsResult && $logsResult->num_rows > 0) { ?>
                             <?php while ($row = $logsResult->fetch_assoc()) { ?>
+                                <?php
+                                $action = strtolower($row['log_action']);
+                                $badgeColor = '#6c757d'; // default gray
+                                if (str_contains($action, 'created')) $badgeColor = '#10b981';
+                                if (str_contains($action, 'updated')) $badgeColor = '#3b82f6';
+                                if (str_contains($action, 'deleted')) $badgeColor = '#ef4444';
+                                ?>
                                 <tr>
-                                    <td><?= htmlspecialchars($row['log_action']) ?></td>
+                                    <td>
+                                        <span style="background:<?= $badgeColor ?>; color:#fff; padding:3px 8px; border-radius:4px; font-size:12px; white-space:nowrap;">
+                                            <?= htmlspecialchars($row['log_action']) ?>
+                                        </span>
+                                    </td>
                                     <td><?= htmlspecialchars($row['log_user']) ?></td>
                                     <td><?= htmlspecialchars($row['log_details'] ?? '-') ?></td>
                                     <td><?= date('M d, Y H:i', strtotime($row['log_date'])) ?></td>
@@ -102,31 +158,33 @@ $logsStmt->close();
                     <div class="pagination-wrapper">
                         <ul class="pagination">
                             <?php if ($page > 1) { ?>
-                                <li><a href="?page=<?= $page - 1 ?>" class="pagination-prev">« Previous</a></li>
+                                                                <li><a href="?page=<?= $page - 1 ?><?= !empty($searchQuery) ? '&search=' . urlencode($searchQuery) : '' ?>" class="pagination-prev">« Previous</a></li>
                             <?php } ?>
 
                             <?php
                             $startPage = max(1, $page - 2);
                             $endPage = min($totalPages, $page + 2);
                             
+                            $sq = !empty($searchQuery) ? '&search=' . urlencode($searchQuery) : '';
+
                             if ($startPage > 1) {
-                                echo '<li><a href="?page=1">1</a></li>';
+                                echo '<li><a href="?page=1' . $sq . '">1</a></li>';
                                 if ($startPage > 2) echo '<li class="disabled"><span>...</span></li>';
                             }
                             
                             for ($i = $startPage; $i <= $endPage; $i++) {
                                 $activeClass = $i == $page ? 'active' : '';
-                                echo '<li class="' . $activeClass . '"><a href="?page=' . $i . '">' . $i . '</a></li>';
+                                echo '<li class="' . $activeClass . '"><a href="?page=' . $i . $sq . '">' . $i . '</a></li>';
                             }
                             
                             if ($endPage < $totalPages) {
                                 if ($endPage < $totalPages - 1) echo '<li class="disabled"><span>...</span></li>';
-                                echo '<li><a href="?page=' . $totalPages . '">' . $totalPages . '</a></li>';
+                                echo '<li><a href="?page=' . $totalPages . $sq . '">' . $totalPages . '</a></li>';
                             }
                             ?>
 
                             <?php if ($page < $totalPages) { ?>
-                                <li><a href="?page=<?= $page + 1 ?>" class="pagination-next">Next »</a></li>
+                                <li><a href="?page=<?= $page + 1 ?><?= !empty($searchQuery) ? '&search=' . urlencode($searchQuery) : '' ?>" class="pagination-next">Next »</a></li>
                             <?php } ?>
                         </ul>
                     </div>
@@ -135,8 +193,6 @@ $logsStmt->close();
         </div>
     </div>
 </div>
-
-<?php include "footer.php"; ?>
 
 <style>
 /* Table Container Styles */
@@ -261,17 +317,5 @@ $logsStmt->close();
 }
 </style>
 
-<script>
-$(document).ready(function() {
-    // Smooth pagination transitions
-    $('.pagination a').click(function(e) {
-        e.preventDefault();
-        const href = $(this).attr('href');
-        if (href) {
-            window.location.href = href;
-        }
-    });
-});
-</script>
-
+<?php include "footer.php"; ?>
 <?php ob_end_flush(); ?>

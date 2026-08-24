@@ -48,7 +48,7 @@ $companyRows = [];
 while ($row = $companiesResult->fetch_assoc()) {
     $companyRows[] = $row;
 }
-$payees = mysqli_query($conn, "SELECT payee_id, payee_name FROM payees ORDER BY payee_name ASC");
+$payees = mysqli_query($conn, "SELECT payee_id, payee_name, payee_tin FROM payees ORDER BY payee_name ASC");
 $categories = mysqli_query($conn, "SELECT category_id, category_name FROM expense_categories ORDER BY category_name ASC");
 $resellers = mysqli_query($conn, "SELECT reseller_id, reseller_name FROM resellers ORDER BY reseller_name ASC");
 $end_users = mysqli_query($conn, "SELECT end_user_id, end_user_name FROM expense_end_users ORDER BY end_user_name ASC");
@@ -100,11 +100,16 @@ if (isset($_POST['update_expense'])) {
         // Regular user: always forced to their assigned company, ignore submitted value
         $company_id = !empty($assignedCompanyIds) ? intval($assignedCompanyIds[0]) : intval($expense['expense_company_id']);
     }
-    $payee_id = mysqli_real_escape_string($conn, $_POST['expense_payee_id']);
-    $category_id = mysqli_real_escape_string($conn, $_POST['expense_category_id']);
+    $payee_id = intval($_POST['expense_payee_id']);
+    $category_id = intval($_POST['expense_category_id']);
     $reseller_id = !empty($_POST['expense_reseller_id']) ? mysqli_real_escape_string($conn, $_POST['expense_reseller_id']) : NULL;
     $or_number = mysqli_real_escape_string($conn, $_POST['expense_or_number']);
-    $expense_date = mysqli_real_escape_string($conn, $_POST['expense_date']);
+        $expense_date = mysqli_real_escape_string($conn, $_POST['expense_date']);
+    if (empty($expense_date)) {
+        $_SESSION['alert'] = ['type' => 'error', 'message' => 'Please enter a valid expense date.'];
+        header("Location: expense_edit.php?id=$expense_id");
+        exit();
+    }
     $remarks = mysqli_real_escape_string($conn, $_POST['expense_remarks']);
 
     // Core numeric fields
@@ -177,11 +182,11 @@ if (isset($_POST['update_expense'])) {
     ";
     mysqli_query($conn, $logQuery);
 
-    $_SESSION['alert'] = "Expense updated successfully!";
+    $_SESSION['alert'] = ['type' => 'success', 'message' => 'Expense updated successfully!'];
     header("Location: expenses.php");
     exit();
 } else {
-    $_SESSION['alert'] = "error_update";
+    $_SESSION['alert'] = ['type' => 'error', 'message' => 'Error: Unable to update expense.'];
 }
 }
 
@@ -196,11 +201,15 @@ unset($_SESSION['alert']);
         <div class="row-fluid" style="background-color: white; min-height: 600px; padding: 20px;">
             <div class="span12">
 
-                <?php if ($alert == "Expense updated successfully!") { ?>
-                    <div class="alert alert-success">Expense updated successfully!</div>
-                <?php } elseif ($alert == "error_update") { ?>
-                    <div class="alert alert-danger">Error: Unable to update expense.</div>
-                <?php } ?>
+                <?php if ($alert): ?>
+                    <?php
+                    $alertType = is_array($alert) ? ($alert['type'] ?? 'info') : 'success';
+                    $alertMessage = is_array($alert) ? ($alert['message'] ?? '') : $alert;
+                    ?>
+                    <div class="alert alert-<?= $alertType ?>">
+                        <?= htmlspecialchars($alertMessage) ?>
+                    </div>
+                <?php endif; ?>
 
                 <div class="widget-box" style="max-width: 800px; margin: 0 auto;">
                     <div class="widget-title">
@@ -253,9 +262,12 @@ unset($_SESSION['alert']);
                             <div class="control-group">
                                 <label class="control-label">Payee:</label>
                                 <div class="controls">
-                                    <select name="expense_payee_id" class="span11" required>
+                                    <select name="expense_payee_id" id="payeeSelect" class="span11" required>
                                         <?php while ($row = mysqli_fetch_assoc($payees)) { ?>
-                                            <option value="<?= $row['payee_id'] ?>" <?= $row['payee_id'] == $expense['expense_payee_id'] ? 'selected' : '' ?>>
+                                            <option 
+                                                value="<?= $row['payee_id'] ?>" 
+                                                data-tin="<?= htmlspecialchars($row['payee_tin'] ?? '') ?>"
+                                                <?= $row['payee_id'] == $expense['expense_payee_id'] ? 'selected' : '' ?>>
                                                 <?= htmlspecialchars($row['payee_name']) ?>
                                             </option>
                                         <?php } ?>
@@ -482,9 +494,23 @@ unset($_SESSION['alert']);
                             });
                             </script>
 
-                            <script>
-                            // Payee TIN display is informational only on edit (legacy data has no data-tin on payee options here)
-                            // Left as a static readonly field; populate manually if payee_tin is added to the payee select's data attributes in the future.
+                                                        <script>
+                            document.addEventListener("DOMContentLoaded", function() {
+                                const payeeSelect = document.getElementById('payeeSelect');
+                                const payeeTinDisplay = document.getElementById('payeeTinDisplay');
+
+                                // Pre-fill TIN on page load
+                                if (payeeSelect && payeeTinDisplay) {
+                                    const selectedOption = payeeSelect.options[payeeSelect.selectedIndex];
+                                    payeeTinDisplay.value = selectedOption.getAttribute('data-tin') || '';
+
+                                    // Update TIN when payee changes
+                                    payeeSelect.addEventListener('change', function() {
+                                        const tin = this.options[this.selectedIndex].getAttribute('data-tin') || '';
+                                        payeeTinDisplay.value = tin;
+                                    });
+                                }
+                            });
                             </script>
 
                             <!-- Remarks -->

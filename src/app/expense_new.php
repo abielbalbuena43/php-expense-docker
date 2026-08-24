@@ -83,13 +83,23 @@ if (isset($_POST['submit_expense'])) {
         header("Location: expense_new.php");
         exit();
     }
-    $payee_id = mysqli_real_escape_string($conn, $_POST['expense_payee_id']);
-    $category_id = mysqli_real_escape_string($conn, $_POST['expense_category_id']);
+    if ($payee_id === 0 || $category_id === 0) {
+        $_SESSION['alert'] = ['type' => 'error', 'message' => 'Please select a valid payee and category.'];
+        header("Location: expense_new.php");
+        exit();
+    }
+    $payee_id = intval($_POST['expense_payee_id']);
+    $category_id = intval($_POST['expense_category_id']);
     $reseller_id = !empty($_POST['expense_reseller_id']) ? mysqli_real_escape_string($conn, $_POST['expense_reseller_id']) : NULL;
     $user_id = !empty($_POST['expense_user_id']) ? mysqli_real_escape_string($conn, $_POST['expense_user_id']) : NULL;
     $product_id = !empty($_POST['expense_product_id']) ? mysqli_real_escape_string($conn, $_POST['expense_product_id']) : NULL;
     $or_number = mysqli_real_escape_string($conn, $_POST['expense_or_number']);
-    $expense_date = mysqli_real_escape_string($conn, $_POST['expense_date']);
+        $expense_date = mysqli_real_escape_string($conn, $_POST['expense_date']);
+    if (empty($expense_date)) {
+        $_SESSION['alert'] = ['type' => 'error', 'message' => 'Please enter a valid expense date.'];
+        header("Location: expense_new.php");
+        exit();
+    }
     $remarks = mysqli_real_escape_string($conn, $_POST['expense_remarks']);
 
     // Inputs
@@ -201,7 +211,7 @@ if (isset($_POST['submit_expense'])) {
         header("Location: expenses.php");
         exit();
     } else {
-        $_SESSION['alert'] = "error";
+        $_SESSION['alert'] = ['type' => 'error', 'message' => 'No valid company assigned. Please contact your administrator.'];
         echo "Database Error: " . mysqli_error($conn);
     }
 }
@@ -680,43 +690,7 @@ document.addEventListener('DOMContentLoaded', function () {
         </div>
 
         <div class="control-group">
-            <label class="control-label">Payee Type <span style="color:red;">*</span></label>
-            <div class="controls">
-                <input type="text" id="newPayeeType" class="span11" placeholder="Type payee type">
-            </div>
-        </div>
-
-        <div class="control-group">
-            <label class="control-label">TIN (Optional)</label>
-            <div class="controls">
-                <input type="text" id="newPayeeTin" class="span11" placeholder="Type TIN digits only">
-            </div>
-        </div>
-
-        <div class="control-group">
-            <label class="control-label">Address 1 (Optional)</label>
-            <div class="controls">
-                <input type="text" id="newPayeeAddress1" class="span11" placeholder="Type address line 1">
-            </div>
-        </div>
-
-        <div class="control-group">
-            <label class="control-label">Address 2 (Optional)</label>
-            <div class="controls">
-                <input type="text" id="newPayeeAddress2" class="span11" placeholder="Type address line 2">
-            </div>
-        </div>
-
-        <div id="addPayeeError" style="display:none; color:red; margin-bottom:10px;"></div>
-
-        <div class="form-actions action-buttons" style="margin-top:20px;">
-            <button type="button" id="saveNewPayee" class="btn btn-success">Save Payee</button>
-            <button type="button" id="closeAddPayeeModal" class="btn btn-secondary">Cancel</button>
-        </div>
-
-    </div>
-</div>
-
+            
 <style>
 #addPayeeModal input {
     width: 100% !important;
