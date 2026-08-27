@@ -39,14 +39,26 @@ if (isset($_POST['submit_user'])) {
     $username = trim($_POST['username']);
     $password = $_POST['password'];
     $fullname = trim($_POST['fullname']);
+    $email = trim($_POST['email']);
     $role = $_POST['role'];
+
+    // Check if email already exists
+    $emailCheck = $conn->prepare("SELECT user_id FROM users WHERE email = ?");
+    $emailCheck->bind_param("s", $email);
+    $emailCheck->execute();
+    $emailCheck->store_result();
+    if ($emailCheck->num_rows > 0) {
+        $error = "That email address is already in use.";
+        $emailCheck->close();
+    } else {
+        $emailCheck->close();
 
     // Hash password for security
     $hashed_password = password_hash($password, PASSWORD_DEFAULT);
 
     // Use prepared statement to prevent SQL injection
-    $stmt = $conn->prepare("INSERT INTO users (username, password, fullname, role, created_at) VALUES (?, ?, ?, ?, NOW())");
-    $stmt->bind_param("ssss", $username, $hashed_password, $fullname, $role);
+    $stmt = $conn->prepare("INSERT INTO users (username, password, fullname, email, role, created_at) VALUES (?, ?, ?, ?, ?, NOW())");
+    $stmt->bind_param("sssss", $username, $hashed_password, $fullname, $email, $role);
 
     if ($stmt->execute()) {
         $new_user_id = $stmt->insert_id;
@@ -77,26 +89,11 @@ if (isset($_POST['submit_user'])) {
     } else {
         $error = "Error: Unable to save user. " . $stmt->error;
     }
+    } // close email check else
 }
 ?>
 
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-    <!-- Core CSS -->
-    <link rel="stylesheet" href="css/bootstrap.min.css">
-    <link rel="stylesheet" href="css/layout.css">
-
-    <!-- Icons -->
-    <link href="font-awesome/css/font-awesome.css" rel="stylesheet">
-
-    <title>Add New User</title>
-</head>
-
-<body>
+<link rel="stylesheet" href="css/layout.css">
     <div id="content"> 
         <div class="container-fluid">
             <div class="row-fluid" style="background-color: white; min-height: 600px; padding: 20px;">
@@ -156,6 +153,14 @@ if (isset($_POST['submit_user'])) {
                                     </div>
                                 </div>
 
+                                <!-- Email -->
+                                <div class="control-group">
+                                    <label class="control-label">Email Address:</label>
+                                    <div class="controls">
+                                        <input type="email" class="span11" name="email" required placeholder="Enter email address">
+                                    </div>
+                                </div>
+
                                 <!-- Role -->
                                 <div class="control-group">
                                     <label class="control-label">Role:</label>
@@ -212,5 +217,3 @@ if (isset($_POST['submit_user'])) {
     </script>
 
     <?php include "footer.php"; ?>
-</body>
-</html>

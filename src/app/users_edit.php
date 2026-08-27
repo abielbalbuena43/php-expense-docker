@@ -40,7 +40,7 @@ function setAlert($type, $message) {
 // ============================================
 // FETCH USER RECORD
 // ============================================
-$stmt = $conn->prepare("SELECT user_id, username, fullname, role, created_at FROM users WHERE user_id = ?");
+$stmt = $conn->prepare("SELECT user_id, username, fullname, email, role, created_at FROM users WHERE user_id = ?");
 $stmt->bind_param("i", $edit_user_id);
 $stmt->execute();
 $result = $stmt->get_result();
@@ -70,17 +70,29 @@ $acStmt->close();
 if (isset($_POST['update_user'])) {
     $username = trim($_POST['username']);
     $fullname = trim($_POST['fullname']);
+    $email = trim($_POST['email']);
     $role = $_POST['role'];
     $password = $_POST['password'];
+
+    // Check if email already taken by another user
+    $emailCheck = $conn->prepare("SELECT user_id FROM users WHERE email = ? AND user_id != ?");
+    $emailCheck->bind_param("si", $email, $edit_user_id);
+    $emailCheck->execute();
+    $emailCheck->store_result();
+    if ($emailCheck->num_rows > 0) {
+        $error = "That email address is already in use by another account.";
+        $emailCheck->close();
+    } else {
+        $emailCheck->close();
 
     // Build dynamic query based on password change
     if (!empty($password)) {
         $hashed_password = password_hash($password, PASSWORD_DEFAULT);
-        $stmt = $conn->prepare("UPDATE users SET username = ?, fullname = ?, role = ?, password = ? WHERE user_id = ?");
-        $stmt->bind_param("ssssi", $username, $fullname, $role, $hashed_password, $edit_user_id);
+        $stmt = $conn->prepare("UPDATE users SET username = ?, fullname = ?, email = ?, role = ?, password = ? WHERE user_id = ?");
+        $stmt->bind_param("sssssi", $username, $fullname, $email, $role, $hashed_password, $edit_user_id);
     } else {
-        $stmt = $conn->prepare("UPDATE users SET username = ?, fullname = ?, role = ? WHERE user_id = ?");
-        $stmt->bind_param("sssi", $username, $fullname, $role, $edit_user_id);
+        $stmt = $conn->prepare("UPDATE users SET username = ?, fullname = ?, email = ?, role = ? WHERE user_id = ?");
+        $stmt->bind_param("ssssi", $username, $fullname, $email, $role, $edit_user_id);
     }
 
     if ($stmt->execute()) {
@@ -118,26 +130,11 @@ if (isset($_POST['update_user'])) {
         $error = "Error: Unable to update user. " . $stmt->error;
         $stmt->close();
     }
+    } // close email check else
 }
 ?>
 
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-    <!-- Core CSS -->
-    <link rel="stylesheet" href="css/bootstrap.min.css">
-    <link rel="stylesheet" href="css/layout.css">
-
-    <!-- Icons -->
-    <link href="font-awesome/css/font-awesome.css" rel="stylesheet">
-
-    <title>Edit User</title>
-</head>
-
-<body>
+<link rel="stylesheet" href="css/layout.css">
     <div id="content">
         <div class="container-fluid">
             <div class="row-fluid" style="background-color: white; min-height: 600px; padding: 20px;">
@@ -185,6 +182,16 @@ if (isset($_POST['update_user'])) {
                                     <div class="controls">
                                         <input type="text" class="span11" name="fullname" 
                                                value="<?= htmlspecialchars($user['fullname']) ?>" required>
+                                    </div>
+                                </div>
+
+                                <!-- Email -->
+                                <div class="control-group">
+                                    <label class="control-label">Email Address:</label>
+                                    <div class="controls">
+                                        <input type="email" class="span11" name="email"
+                                               value="<?= htmlspecialchars($user['email'] ?? '') ?>" required
+                                               placeholder="Enter email address">
                                     </div>
                                 </div>
 

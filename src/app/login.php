@@ -1,6 +1,4 @@
 <?php
-ini_set('display_errors', 1);
-error_reporting(E_ALL);
 ob_start();
 session_start();
 include "../app/connection.php";
@@ -14,19 +12,24 @@ if (isset($_SESSION['user_id'])) {
 // Note: In a real production environment, use Prepared Statements to prevent SQL Injection
 if (isset($_POST['login'])) {
 
-    $username = mysqli_real_escape_string($conn, $_POST['username']);
+    $login = trim($_POST['username']);
     $password = $_POST['password'];
 
-    $query = "SELECT * FROM users WHERE username = '$username'";
-    $result = mysqli_query($conn, $query);
+    // Support login by email or username
+    $stmt = $conn->prepare("SELECT * FROM users WHERE username = ? OR email = ?");
+    $stmt->bind_param("ss", $login, $login);
+    $stmt->execute();
+    $result = $stmt->get_result();
 
-    if ($result && mysqli_num_rows($result) > 0) {
+    if ($result && $result->num_rows > 0) {
 
-        $user = mysqli_fetch_assoc($result);
+        $user = $result->fetch_assoc();
+        $stmt->close();
 
-        // Support both hashed and plaintext passwords
-        $isHashed = strlen($user['password']) > 30 && str_starts_with($user['password'], '$2y$');
-        if ($isHashed ? password_verify($password, $user['password']) : $user['password'] === $password) {
+        if (password_verify($password, $user['password'])) {
+
+            // Regenerate session ID to prevent session fixation
+            session_regenerate_id(true);
 
             $_SESSION['user_id'] = $user['user_id'];
             $_SESSION['username'] = $user['username'];
@@ -244,11 +247,11 @@ if (isset($_POST['login'])) {
 
     <form method="post" action="">
 
-        <!-- Username Input -->
+        <!-- Username/Email Input -->
         <div class="input-group">
             <i class="fas fa-user input-icon"></i>
             <input type="text" name="username" id="username" placeholder=" " required>
-            <label for="username">Username</label>
+            <label for="username">Username or Email</label>
         </div>
 
         <!-- Password Input -->
@@ -263,11 +266,17 @@ if (isset($_POST['login'])) {
             Sign In
         </button>
 
-        <?php
-        if(isset($error)){
-            echo "<div class='error-message'><i class='fas fa-exclamation-circle'></i> $error</div>";
-        }
-        ?>
+                <div style="text-align:center; margin-top:15px;">
+            <a href="forgot_password.php" style="color:#4e54c8; font-size:13px; text-decoration:none;">
+                Forgot your password?
+            </a>
+        </div>
+
+        <?php if (isset($error)): ?>
+        <div class="error-message">
+            <i class="fas fa-exclamation-circle"></i> <?= htmlspecialchars($error) ?>
+        </div>
+        <?php endif; ?>
 
     </form>
 

@@ -503,6 +503,19 @@ $status = "Active";
             <div style="padding:12px 16px; border-bottom:1px solid #333; color:#aaa; font-size:12px;">
                 Signed in as <strong style="color:white;"><?php echo htmlspecialchars($username); ?></strong>
             </div>
+            <a href="profile.php" style="
+                display:flex;
+                align-items:center;
+                gap:10px;
+                padding:12px 16px;
+                color:#ccc;
+                text-decoration:none;
+                font-size:13px;
+                transition:background 0.2s;
+            " onmouseover="this.style.background='#2a2a2e'" onmouseout="this.style.background='transparent'">
+                <i class="icon icon-user"></i> My Profile
+            </a>
+
             <a href="change_password.php" style="
                 display:flex;
                 align-items:center;
