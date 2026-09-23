@@ -26,7 +26,7 @@ if (!isset($_GET['id']) || empty($_GET['id'])) {
 $payee_id = intval($_GET['id']);
 
 // Fetch current payee record
-$payee_query = mysqli_query($conn, "SELECT * FROM payees WHERE payee_id = '$payee_id' LIMIT 1");
+$payee_query = mysqli_query($conn, "SELECT * FROM payees WHERE payee_id = $payee_id LIMIT 1");
 if (mysqli_num_rows($payee_query) === 0) {
     echo "<div class='alert alert-danger'>Payee record not found.</div>";
     exit();
@@ -63,11 +63,11 @@ if (isset($_POST['update_payee'])) {
         ";
         mysqli_query($conn, $logQuery);
 
-        $_SESSION['alert'] = "Payee updated successfully!";
+        $_SESSION['alert'] = ['type' => 'success', 'message' => 'Payee updated successfully!'];
         header("Location: payees.php");
         exit();
     } else {
-        $_SESSION['alert'] = "error_update";
+        $_SESSION['alert'] = ['type' => 'error', 'message' => 'Error: Unable to update payee.'];
     }
 }
 
@@ -82,11 +82,15 @@ unset($_SESSION['alert']);
         <div class="row-fluid" style="background-color: white; min-height: 500px; padding: 20px;">
             <div class="span12">
 
-                <?php if ($alert == "Payee updated successfully!") { ?>
-                    <div class="alert alert-success">Payee updated successfully!</div>
-                <?php } elseif ($alert == "error_update") { ?>
-                    <div class="alert alert-danger">Error: Unable to update payee.</div>
-                <?php } ?>
+                <?php if ($alert): ?>
+                    <?php
+                    $alertType = is_array($alert) ? ($alert['type'] ?? 'info') : 'success';
+                    $alertMessage = is_array($alert) ? ($alert['message'] ?? '') : $alert;
+                    ?>
+                    <div class="alert alert-<?= $alertType ?>">
+                        <?= htmlspecialchars($alertMessage) ?>
+                    </div>
+                <?php endif; ?>
 
                 <div class="widget-box" style="max-width: 800px; margin: 0 auto;">
                     <div class="widget-title">

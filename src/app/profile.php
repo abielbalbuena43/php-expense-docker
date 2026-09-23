@@ -21,8 +21,9 @@ $result = $stmt->get_result();
 $userProfile = $result->fetch_assoc();
 $stmt->close();
 
-if (!$user) {
-    die("Debug: User not found. Session user_id: " . $userId . " | DB Error: " . $conn->error);
+if (!$userProfile) {
+    header("Location: login.php");
+    exit();
 }
 
 /* -------------------------------

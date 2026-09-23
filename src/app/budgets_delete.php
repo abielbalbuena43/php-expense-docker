@@ -2,7 +2,6 @@
 ob_start();
 session_start();
 include "header.php";
-include "connection.php";
 
 if (!isset($_SESSION['user_id'])) {
     header("Location: login.php");
@@ -20,7 +19,7 @@ if (!$isSuperAdmin) {
    VALIDATE ID
 --------------------------------*/
 if (!isset($_GET['id']) || empty($_GET['id'])) {
-    $_SESSION['alert'] = "invalid";
+    $_SESSION['alert'] = ['type' => 'error', 'message' => 'Invalid budget ID.'];
     header("Location: budgets.php");
     exit();
 }
@@ -34,12 +33,21 @@ $query = "SELECT * FROM budgets WHERE budget_id = $budget_id LIMIT 1";
 $result = mysqli_query($conn, $query);
 
 if (!$result || mysqli_num_rows($result) === 0) {
-    $_SESSION['alert'] = "not_found";
+    $_SESSION['alert'] = ['type' => 'error', 'message' => 'Budget not found.'];
     header("Location: budgets.php");
     exit();
 }
 
 $budget = mysqli_fetch_assoc($result);
+
+/* -------------------------------
+   MONTH FORMAT
+--------------------------------*/
+$months = [
+    1=>"January",2=>"February",3=>"March",4=>"April",
+    5=>"May",6=>"June",7=>"July",8=>"August",
+    9=>"September",10=>"October",11=>"November",12=>"December"
+];
 
 /* -------------------------------
    HANDLE DELETE (UPDATED)
@@ -70,35 +78,22 @@ if (isset($_POST['confirm_delete'])) {
         ");
 
         // MATCH expense_delete.php behavior
-        $_SESSION['alert'] = "Budget deleted successfully!";
-
+        $_SESSION['alert'] = ['type' => 'success', 'message' => 'Budget deleted successfully!'];
         header("Location: budgets.php");
         exit();
 
     } else {
-
-        $_SESSION['alert'] = "error";
-
-    }
+        $_SESSION['alert'] = ['type' => 'error', 'message' => 'Error: Unable to delete budget.'];
     }
 
     $deleteStmt->close();
 }
 
 /* -------------------------------
-   ALERT DISPLAY (MATCH EXPENSE)
+   ALERT DISPLAY
 --------------------------------*/
 $alert = $_SESSION['alert'] ?? null;
 unset($_SESSION['alert']);
-
-/* -------------------------------
-   MONTH FORMAT
---------------------------------*/
-$months = [
-    1=>"January",2=>"February",3=>"March",4=>"April",
-    5=>"May",6=>"June",7=>"July",8=>"August",
-    9=>"September",10=>"October",11=>"November",12=>"December"
-];
 ?>
 
 <link rel="stylesheet" href="css/layout.css" />
@@ -109,15 +104,15 @@ $months = [
 <div class="row-fluid" style="background-color: white; min-height: 600px; padding: 20px;">
 <div class="span12">
 
-<?php if ($alert == "Budget deleted successfully!") { ?>
-    <div class="alert alert-success">Budget deleted successfully!</div>
-<?php } elseif ($alert == "error") { ?>
-    <div class="alert alert-danger">Error: Unable to delete budget.</div>
-<?php } elseif ($alert == "invalid") { ?>
-    <div class="alert alert-warning">Invalid budget ID.</div>
-<?php } elseif ($alert == "not_found") { ?>
-    <div class="alert alert-warning">Budget not found.</div>
-<?php } ?>
+<?php if ($alert): ?>
+    <?php
+    $alertType = is_array($alert) ? ($alert['type'] ?? 'info') : 'success';
+    $alertMessage = is_array($alert) ? ($alert['message'] ?? '') : $alert;
+    ?>
+    <div class="alert alert-<?= $alertType === 'error' ? 'danger' : $alertType ?>">
+        <?= htmlspecialchars($alertMessage) ?>
+    </div>
+<?php endif; ?>
 
 <div class="widget-box" style="max-width: 800px; margin: 0 auto;">
 

@@ -2,7 +2,6 @@
 ob_start();
 session_start();
 include "header.php";
-include "connection.php";
 
 if (!isset($_SESSION['user_id'])) {
     header("Location: login.php");
@@ -28,7 +27,7 @@ $end_user_id = intval($_GET['id']);
 // Fetch End User record
 $query = mysqli_query($conn, "SELECT * FROM expense_end_users WHERE end_user_id = '$end_user_id' LIMIT 1");
 if (mysqli_num_rows($query) === 0) {
-    $_SESSION['alert'] = "not_found";
+    $_SESSION['alert'] = ['type' => 'error', 'message' => 'End User not found.'];
     header("Location: end_users.php");
     exit();
 }
@@ -55,14 +54,14 @@ if (isset($_POST['update_end_user'])) {
             ";
             mysqli_query($conn, $logQuery);
 
-            $_SESSION['alert'] = "End User updated successfully!";
+            $_SESSION['alert'] = ['type' => 'success', 'message' => 'End User updated successfully!'];
             header("Location: end_users.php");
             exit();
         } else {
-            $_SESSION['alert'] = "error_update";
+            $_SESSION['alert'] = ['type' => 'error', 'message' => 'Error: Unable to update End User.'];
         }
     } else {
-        $_SESSION['alert'] = "empty_fields";
+        $_SESSION['alert'] = ['type' => 'warning', 'message' => 'End User name cannot be empty.'];
     }
 }
 
@@ -78,13 +77,15 @@ unset($_SESSION['alert']);
             <div class="span12">
 
                 <!-- Display success or error alerts -->
-                <?php if ($alert == "End User updated successfully!") { ?>
-                    <div class="alert alert-success">End User updated successfully!</div>
-                <?php } elseif ($alert == "error_update") { ?>
-                    <div class="alert alert-danger">Error: Unable to update End User.</div>
-                <?php } elseif ($alert == "empty_fields") { ?>
-                    <div class="alert alert-warning">Error: End User name cannot be empty.</div>
-                <?php } ?>
+                <?php if ($alert): ?>
+                    <?php
+                    $alertType = is_array($alert) ? ($alert['type'] ?? 'info') : 'success';
+                    $alertMessage = is_array($alert) ? ($alert['message'] ?? '') : $alert;
+                    ?>
+                    <div class="alert alert-<?= $alertType ?>">
+                        <?= htmlspecialchars($alertMessage) ?>
+                    </div>
+                <?php endif; ?>
 
                 <!-- Edit End User Form -->
                 <div class="widget-box" style="max-width: 800px; margin: 0 auto;">

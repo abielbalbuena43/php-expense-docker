@@ -1,8 +1,7 @@
 <?php
 ob_start();
 session_start();
-include "header.php";  // Moved to the top, before any logic
-include "connection.php";
+include "header.php";  
 
 if (!isset($_SESSION['user_id'])) {
     header("Location: login.php");
@@ -27,7 +26,7 @@ if (!$isSuperAdmin) {
 
 // Check if an expense ID is provided
 if (!isset($_GET['id']) || empty($_GET['id'])) {
-    $_SESSION['alert'] = "invalid";
+    $_SESSION['alert'] = ['type' => 'error', 'message' => 'Invalid expense ID.'];
     header("Location: expenses.php");
     exit();
 }
@@ -54,7 +53,7 @@ $query = "
         e.expense_total_purchases,
         e.expense_total_receipt_amount,
         e.expense_taxable_net_vat,
-e.expense_company_id,
+        e.expense_company_id,
         e.expense_remarks,
         e.expense_created_by
     FROM expenses e
@@ -67,7 +66,7 @@ $result = mysqli_query($conn, $query);
 
 // If no expense found, redirect
 if (!$result || mysqli_num_rows($result) === 0) {
-    $_SESSION['alert'] = "not_found";
+    $_SESSION['alert'] = ['type' => 'error', 'message' => 'Expense record not found.'];
     header("Location: expenses.php");
     exit();
 }
@@ -104,11 +103,11 @@ if (isset($_POST['confirm_delete'])) {
         ";
         mysqli_query($conn, $logQuery);
 
-        $_SESSION['alert'] = "Expense deleted successfully!";
+        $_SESSION['alert'] = ['type' => 'success', 'message' => 'Expense deleted successfully!'];
         header("Location: expenses.php");
         exit();
     } else {
-        $_SESSION['alert'] = "error";
+        $_SESSION['alert'] = ['type' => 'error', 'message' => 'Error: Unable to delete expense.'];
     }
 }
 

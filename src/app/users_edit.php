@@ -14,8 +14,6 @@ if ($_SESSION['role'] !== 'super_admin') {
 $current_role = $_SESSION['role'];
 $current_user_id = $_SESSION['user_id'];
 
-include "connection.php";
-
 // ============================================
 // VALIDATE ID
 // ============================================
@@ -85,51 +83,51 @@ if (isset($_POST['update_user'])) {
     } else {
         $emailCheck->close();
 
-    // Build dynamic query based on password change
-    if (!empty($password)) {
-        $hashed_password = password_hash($password, PASSWORD_DEFAULT);
-        $stmt = $conn->prepare("UPDATE users SET username = ?, fullname = ?, email = ?, role = ?, password = ? WHERE user_id = ?");
-        $stmt->bind_param("sssssi", $username, $fullname, $email, $role, $hashed_password, $edit_user_id);
-    } else {
-        $stmt = $conn->prepare("UPDATE users SET username = ?, fullname = ?, email = ?, role = ? WHERE user_id = ?");
-        $stmt->bind_param("ssssi", $username, $fullname, $email, $role, $edit_user_id);
-    }
-
-    if ($stmt->execute()) {
-        $stmt->close();
-
-        // Update company assignments
-        $deleteStmt = $conn->prepare("DELETE FROM user_companies WHERE user_id = ?");
-        $deleteStmt->bind_param("i", $edit_user_id);
-        $deleteStmt->execute();
-        $deleteStmt->close();
-
-        if (!empty($_POST['assigned_companies']) && $role !== 'super_admin') {
-            $companyStmt = $conn->prepare("INSERT INTO user_companies (user_id, company_id) VALUES (?, ?)");
-            foreach ($_POST['assigned_companies'] as $company_id) {
-                $company_id = intval($company_id);
-                $companyStmt->bind_param("ii", $edit_user_id, $company_id);
-                $companyStmt->execute();
-            }
-            $companyStmt->close();
+        // Build dynamic query based on password change
+        if (!empty($password)) {
+            $hashed_password = password_hash($password, PASSWORD_DEFAULT);
+            $stmt = $conn->prepare("UPDATE users SET username = ?, fullname = ?, email = ?, role = ?, password = ? WHERE user_id = ?");
+            $stmt->bind_param("sssssi", $username, $fullname, $email, $role, $hashed_password, $edit_user_id);
+        } else {
+            $stmt = $conn->prepare("UPDATE users SET username = ?, fullname = ?, email = ?, role = ? WHERE user_id = ?");
+            $stmt->bind_param("ssssi", $username, $fullname, $email, $role, $edit_user_id);
         }
 
-        $adminUsername = mysqli_real_escape_string($conn, $_SESSION['username']);
-        $editedUsername = mysqli_real_escape_string($conn, $username);
+        if ($stmt->execute()) {
+            $stmt->close();
 
-        $logQuery = "
-            INSERT INTO logs (log_action, log_user, log_details, log_date)
-            VALUES ('User updated', '$adminUsername', 'User: $editedUsername, Role: $role (User ID: $edit_user_id)', NOW())
-        ";
-        mysqli_query($conn, $logQuery);
+            // Update company assignments
+            $deleteStmt = $conn->prepare("DELETE FROM user_companies WHERE user_id = ?");
+            $deleteStmt->bind_param("i", $edit_user_id);
+            $deleteStmt->execute();
+            $deleteStmt->close();
 
-        setAlert('success', 'User updated successfully!');
-        header("Location: users.php?success=edited");
-        exit();
-    } else {
-        $error = "Error: Unable to update user. " . $stmt->error;
-        $stmt->close();
-    }
+            if (!empty($_POST['assigned_companies']) && $role !== 'super_admin') {
+                $companyStmt = $conn->prepare("INSERT INTO user_companies (user_id, company_id) VALUES (?, ?)");
+                foreach ($_POST['assigned_companies'] as $company_id) {
+                    $company_id = intval($company_id);
+                    $companyStmt->bind_param("ii", $edit_user_id, $company_id);
+                    $companyStmt->execute();
+                }
+                $companyStmt->close();
+            }
+
+            $adminUsername = mysqli_real_escape_string($conn, $_SESSION['username']);
+            $editedUsername = mysqli_real_escape_string($conn, $username);
+
+            $logQuery = "
+                INSERT INTO logs (log_action, log_user, log_details, log_date)
+                VALUES ('User updated', '$adminUsername', 'User: $editedUsername, Role: $role (User ID: $edit_user_id)', NOW())
+            ";
+            mysqli_query($conn, $logQuery);
+
+            setAlert('success', 'User updated successfully!');
+            header("Location: users.php?success=edited");
+            exit();
+        } else {
+            $error = "Error: Unable to update user. " . $stmt->error;
+            $stmt->close();
+        }
     } // close email check else
 }
 ?>
@@ -198,7 +196,7 @@ if (isset($_POST['update_user'])) {
                                 <!-- Password -->
                                 <div class="control-group">
                                     <label class="control-label">
-                                        <?= $current_user_id === $edit_user_id ? 'New Password:' : 'New Password:' ?>
+                                        New Password:
                                     </label>
                                     <div class="controls">
                                         <input type="password" class="span11" name="password" 
@@ -282,5 +280,3 @@ if (isset($_POST['update_user'])) {
     </script>
 
     <?php include "footer.php"; ?>
-</body>
-</html>

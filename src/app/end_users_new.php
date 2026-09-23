@@ -34,14 +34,14 @@ if (isset($_POST['submit_end_user'])) {
             ";
             mysqli_query($conn, $logQuery);
 
-            $_SESSION['alert'] = "End User created successfully!";
+            $_SESSION['alert'] = ['type' => 'success', 'message' => 'End User created successfully!'];
             header("Location: end_users.php");
             exit();
         } else {
-            $_SESSION['alert'] = "error";
+            $_SESSION['alert'] = ['type' => 'error', 'message' => 'Error: Unable to create End User.'];
         }
     } else {
-        $_SESSION['alert'] = "empty";
+        $_SESSION['alert'] = ['type' => 'warning', 'message' => 'End User name cannot be empty.'];
     }
 }
 
@@ -57,13 +57,15 @@ unset($_SESSION['alert']);
             <div class="span12">
 
                 <!-- Display success or error alerts -->
-                <?php if ($alert == "success") { ?>
-                    <div class="alert alert-success">End User created successfully!</div>
-                <?php } elseif ($alert == "error") { ?>
-                    <div class="alert alert-danger">Error: Unable to create End User.</div>
-                <?php } elseif ($alert == "empty") { ?>
-                    <div class="alert alert-warning">Error: End User name cannot be empty.</div>
-                <?php } ?>
+                <?php if ($alert): ?>
+                    <?php
+                    $alertType = is_array($alert) ? ($alert['type'] ?? 'info') : 'success';
+                    $alertMessage = is_array($alert) ? ($alert['message'] ?? '') : $alert;
+                    ?>
+                    <div class="alert alert-<?= $alertType ?>">
+                        <?= htmlspecialchars($alertMessage) ?>
+                    </div>
+                <?php endif; ?>
 
                 <!-- New End User Form -->
                 <div class="widget-box" style="max-width: 800px; margin: 0 auto;">

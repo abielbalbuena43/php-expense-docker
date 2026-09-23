@@ -34,14 +34,14 @@ if (isset($_POST['submit_reseller'])) {
             ";
             mysqli_query($conn, $logQuery);
 
-            $_SESSION['alert'] = "Reseller added successfully!";
+            $_SESSION['alert'] = ['type' => 'success', 'message' => 'Reseller added successfully!'];
             header("Location: resellers.php");
             exit();
         } else {
-            $_SESSION['alert'] = "error";
+            $_SESSION['alert'] = ['type' => 'error', 'message' => 'Error: Unable to save reseller.'];
         }
     } else {
-        $_SESSION['alert'] = "empty";
+        $_SESSION['alert'] = ['type' => 'warning', 'message' => 'Please enter a reseller name.'];
     }
 }
 
@@ -57,13 +57,15 @@ unset($_SESSION['alert']);
             <div class="span12">
 
                 <!-- Alert Messages -->
-                <?php if ($alert == "Reseller added successfully!") { ?>
-                    <div class="alert alert-success">Reseller added successfully!</div>
-                <?php } elseif ($alert == "error") { ?>
-                    <div class="alert alert-danger">Error: Unable to save reseller.</div>
-                <?php } elseif ($alert == "empty") { ?>
-                    <div class="alert alert-warning">Please enter a reseller name.</div>
-                <?php } ?>
+                <?php if ($alert): ?>
+                    <?php
+                    $alertType = is_array($alert) ? ($alert['type'] ?? 'info') : 'success';
+                    $alertMessage = is_array($alert) ? ($alert['message'] ?? '') : $alert;
+                    ?>
+                    <div class="alert alert-<?= $alertType ?>">
+                        <?= htmlspecialchars($alertMessage) ?>
+                    </div>
+                <?php endif; ?>
 
                 <!-- Reseller Form -->
                 <div class="widget-box" style="max-width: 800px; margin: 0 auto;">

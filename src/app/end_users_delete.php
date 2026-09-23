@@ -1,7 +1,6 @@
 <?php
 session_start();
 include "header.php";
-include "connection.php";
 
 if (!isset($_SESSION['user_id'])) {
     header("Location: login.php");
@@ -18,7 +17,7 @@ if (!$isSuperAdmin && !$isAdmin) {
 
 // Check if End User ID is provided
 if (!isset($_GET['id']) || empty($_GET['id'])) {
-    $_SESSION['alert'] = "invalid";
+    $_SESSION['alert'] = ['type' => 'error', 'message' => 'Invalid End User ID.'];
     header("Location: end_users.php");
     exit();
 }
@@ -31,13 +30,13 @@ $query = "
         end_user_id,
         end_user_name
     FROM expense_end_users
-    WHERE end_user_id = '$end_user_id'
+    WHERE end_user_id = $end_user_id
     LIMIT 1
 ";
 $result = mysqli_query($conn, $query);
 
 if (!$result || mysqli_num_rows($result) === 0) {
-    $_SESSION['alert'] = "not_found";
+    $_SESSION['alert'] = ['type' => 'error', 'message' => 'End User not found.'];
     header("Location: end_users.php");
     exit();
 }
@@ -46,7 +45,7 @@ $end_user = mysqli_fetch_assoc($result);
 
 // Handle delete confirmation
 if (isset($_POST['confirm_delete'])) {
-    $delete_query = "DELETE FROM expense_end_users WHERE end_user_id = '$end_user_id'";
+    $delete_query = "DELETE FROM expense_end_users WHERE end_user_id = $end_user_id";
 
     if (mysqli_query($conn, $delete_query)) {
         $username = mysqli_real_escape_string($conn, $_SESSION['username']);
@@ -58,11 +57,11 @@ if (isset($_POST['confirm_delete'])) {
         ";
         mysqli_query($conn, $logQuery);
 
-        $_SESSION['alert'] = "End User deleted successfully!";
+        $_SESSION['alert'] = ['type' => 'success', 'message' => 'End User deleted successfully!'];
         header("Location: end_users.php");
         exit();
     } else {
-        $_SESSION['alert'] = "error";
+        $_SESSION['alert'] = ['type' => 'error', 'message' => 'Error: Unable to delete End User.'];
     }
 }
 
@@ -79,15 +78,15 @@ unset($_SESSION['alert']);
             <div class="span12">
 
                 <!-- Display alert messages -->
-                <?php if ($alert == "error") { ?>
-                    <div class="alert alert-danger">Error: Unable to delete End User.</div>
-                <?php } elseif ($alert == "invalid") { ?>
-                    <div class="alert alert-warning">Invalid End User ID.</div>
-                <?php } elseif ($alert == "not_found") { ?>
-                    <div class="alert alert-warning">End User not found.</div>
-                <?php } elseif ($alert == "End User deleted successfully!") { ?>
-                    <div class="alert alert-success">End User deleted successfully!</div>
-                <?php } ?>
+                <?php if ($alert): ?>
+                    <?php
+                    $alertType = is_array($alert) ? ($alert['type'] ?? 'info') : 'success';
+                    $alertMessage = is_array($alert) ? ($alert['message'] ?? '') : $alert;
+                    ?>
+                    <div class="alert alert-<?= $alertType === 'error' ? 'danger' : $alertType ?>">
+                        <?= htmlspecialchars($alertMessage) ?>
+                    </div>
+                <?php endif; ?>
 
                 <!-- Delete Confirmation Form -->
                 <div class="widget-box" style="max-width: 600px; margin: 0 auto;">

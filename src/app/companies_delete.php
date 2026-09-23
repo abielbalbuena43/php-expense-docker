@@ -1,7 +1,6 @@
 <?php
 session_start();
 include "header.php";
-include "connection.php";
 
 if (!isset($_SESSION['user_id'])) {
     header("Location: login.php");
@@ -18,7 +17,7 @@ if (!$isSuperAdmin) {
 
 // Check if company ID is provided
 if (!isset($_GET['id']) || empty($_GET['id'])) {
-    $_SESSION['alert'] = "invalid";
+    $_SESSION['alert'] = ['type' => 'error', 'message' => 'Invalid company ID.'];
     header("Location: companies.php");
     exit();
 }
@@ -37,7 +36,7 @@ $query = "
 $result = mysqli_query($conn, $query);
 
 if (!$result || mysqli_num_rows($result) === 0) {
-    $_SESSION['alert'] = "not_found";
+    $_SESSION['alert'] = ['type' => 'error', 'message' => 'Company not found.'];
     header("Location: companies.php");
     exit();
 }
@@ -46,7 +45,7 @@ $company = mysqli_fetch_assoc($result);
 
 // Handle delete confirmation
 if (isset($_POST['confirm_delete'])) {
-    $delete_query = "DELETE FROM companies WHERE company_id = '$company_id'";
+     $delete_query = "DELETE FROM companies WHERE company_id = $company_id";
 
     if (mysqli_query($conn, $delete_query)) {
         $username = mysqli_real_escape_string($conn, $_SESSION['username']);
@@ -58,12 +57,12 @@ if (isset($_POST['confirm_delete'])) {
         ";
         mysqli_query($conn, $logQuery);
 
-        $_SESSION['alert'] = "Company deleted successfully!";
+        $_SESSION['alert'] = ['type' => 'success', 'message' => 'Company deleted successfully!'];
         header("Location: companies.php");
         exit();
     } else {
-        $_SESSION['alert'] = "error";
-    }
+        $_SESSION['alert'] = ['type' => 'error', 'message' => 'Error: Unable to delete company.'];
+    }   
 }
 
 // Alert messages
@@ -79,15 +78,15 @@ unset($_SESSION['alert']);
             <div class="span12">
 
                 <!-- Display alert messages -->
-                <?php if ($alert == "error") { ?>
-                    <div class="alert alert-danger">Error: Unable to delete company.</div>
-                <?php } elseif ($alert == "invalid") { ?>
-                    <div class="alert alert-warning">Invalid company ID.</div>
-                <?php } elseif ($alert == "not_found") { ?>
-                    <div class="alert alert-warning">Company not found.</div>
-                <?php } elseif ($alert == "Company deleted successfully!") { ?>
-                    <div class="alert alert-success">Company deleted successfully!</div>
-                <?php } ?>
+                <?php if ($alert): ?>
+                    <?php
+                    $alertType = is_array($alert) ? ($alert['type'] ?? 'info') : 'success';
+                    $alertMessage = is_array($alert) ? ($alert['message'] ?? '') : $alert;
+                    ?>
+                    <div class="alert alert-<?= $alertType ?>">
+                        <?= htmlspecialchars($alertMessage) ?>
+                    </div>
+                <?php endif; ?>
 
                 <!-- Delete Confirmation Form -->
                 <div class="widget-box" style="max-width: 600px; margin: 0 auto;">

@@ -2,7 +2,6 @@
 ob_start();
 session_start();
 include "header.php";
-include "connection.php";
 
 if (!isset($_SESSION['user_id'])) {
     header("Location: login.php");
@@ -74,22 +73,42 @@ if ($isSuperAdmin) {
 // If no companies assigned, $expenseData stays all zeros
 
 // ---------- Monthly Budgets ----------
-$budgetStmt = $conn->prepare("
-    SELECT month, amount
-    FROM budgets
-    WHERE year = ?
-");
-$budgetStmt->bind_param("i", $selectedYear);
-$budgetStmt->execute();
-$budgetResult = $budgetStmt->get_result();
-
 $budgetData = array_fill(1, 12, 0);
 
-while ($row = $budgetResult->fetch_assoc()) {
-    $budgetData[$row['month']] = floatval($row['amount']);
+if ($isSuperAdmin) {
+    $budgetStmt = $conn->prepare("
+        SELECT month, SUM(amount) AS amount
+        FROM budgets
+        WHERE year = ?
+        GROUP BY month
+    ");
+    $budgetStmt->bind_param("i", $selectedYear);
+    $budgetStmt->execute();
+    $budgetResult = $budgetStmt->get_result();
+    while ($row = $budgetResult->fetch_assoc()) {
+        $budgetData[$row['month']] = floatval($row['amount']);
+    }
+    $budgetStmt->close();
+} elseif (!empty($assignedCompanyIds)) {
+    $placeholders = implode(',', array_fill(0, count($assignedCompanyIds), '?'));
+    $budgetStmt = $conn->prepare("
+        SELECT month, SUM(amount) AS amount
+        FROM budgets
+        WHERE year = ?
+        AND company_id IN ($placeholders)
+        GROUP BY month
+    ");
+    $budgetParams = array_merge([$selectedYear], $assignedCompanyIds);
+    $budgetTypes = 'i' . str_repeat('i', count($assignedCompanyIds));
+    $budgetStmt->bind_param($budgetTypes, ...$budgetParams);
+    $budgetStmt->execute();
+    $budgetResult = $budgetStmt->get_result();
+    while ($row = $budgetResult->fetch_assoc()) {
+        $budgetData[$row['month']] = floatval($row['amount']);
+    }
+    $budgetStmt->close();
 }
-
-$budgetStmt->close();
+// If no companies assigned, $budgetData stays all zeros
 ?>
 
 <link rel="stylesheet" href="css/layout.css">
@@ -135,8 +154,6 @@ $budgetStmt->close();
         </div>
     </div>
 </div>
-
-<?php include "footer.php"; ?>
 
 <!-- Chart.js -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -288,4 +305,5 @@ const expenseChart = new Chart(ctx, {
 }
 </style>
 
+<?php include "footer.php"; ?>
 <?php ob_end_flush(); ?>

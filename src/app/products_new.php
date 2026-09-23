@@ -2,7 +2,6 @@
 ob_start();
 session_start();
 include "header.php"; 
-include "connection.php";
 
 if (!isset($_SESSION['user_id'])) {
     header("Location: login.php");
@@ -34,14 +33,14 @@ if (isset($_POST['submit_product'])) {
             ";
             mysqli_query($conn, $logQuery);
 
-            $_SESSION['alert'] = "Product added successfully!";
+            $_SESSION['alert'] = ['type' => 'success', 'message' => 'Product added successfully!'];
             header("Location: products.php");
             exit();
         } else {
-            $_SESSION['alert'] = "error";
+            $_SESSION['alert'] = ['type' => 'error', 'message' => 'Error: Unable to save product.'];
         }
     } else {
-        $_SESSION['alert'] = "empty";
+        $_SESSION['alert'] = ['type' => 'warning', 'message' => 'Please enter a product name.'];
     }
 }
 
@@ -57,13 +56,15 @@ unset($_SESSION['alert']);
             <div class="span12">
 
                 <!-- Alert Messages -->
-                <?php if ($alert == "Product added successfully!") { ?>
-                    <div class="alert alert-success">Product added successfully!</div>
-                <?php } elseif ($alert == "error") { ?>
-                    <div class="alert alert-danger">Error: Unable to save product.</div>
-                <?php } elseif ($alert == "empty") { ?>
-                    <div class="alert alert-warning">Please enter a product name.</div>
-                <?php } ?>
+                <?php if ($alert): ?>
+                    <?php
+                    $alertType = is_array($alert) ? ($alert['type'] ?? 'info') : 'success';
+                    $alertMessage = is_array($alert) ? ($alert['message'] ?? '') : $alert;
+                    ?>
+                    <div class="alert alert-<?= $alertType ?>">
+                        <?= htmlspecialchars($alertMessage) ?>
+                    </div>
+                <?php endif; ?>
 
                 <!-- Product Form -->
                 <div class="widget-box" style="max-width: 800px; margin: 0 auto;">

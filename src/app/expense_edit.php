@@ -104,7 +104,7 @@ if (isset($_POST['update_expense'])) {
     $category_id = intval($_POST['expense_category_id']);
     $reseller_id = !empty($_POST['expense_reseller_id']) ? mysqli_real_escape_string($conn, $_POST['expense_reseller_id']) : NULL;
     $or_number = mysqli_real_escape_string($conn, $_POST['expense_or_number']);
-        $expense_date = mysqli_real_escape_string($conn, $_POST['expense_date']);
+    $expense_date = mysqli_real_escape_string($conn, $_POST['expense_date']);
     if (empty($expense_date)) {
         $_SESSION['alert'] = ['type' => 'error', 'message' => 'Please enter a valid expense date.'];
         header("Location: expense_edit.php?id=$expense_id");
@@ -160,34 +160,34 @@ if (isset($_POST['update_expense'])) {
 ";
 
     if (mysqli_query($conn, $query)) {
-    $username = mysqli_real_escape_string($conn, $_SESSION['username']);
+        $username = mysqli_real_escape_string($conn, $_SESSION['username']);
 
-    // Fetch payee name and company name for a readable log entry
-    $logDetailsStmt = $conn->prepare("
-        SELECT p.payee_name, c.company_name
-        FROM payees p, companies c
-        WHERE p.payee_id = ? AND c.company_id = ?
-    ");
-    $logDetailsStmt->bind_param("ii", $payee_id, $company_id);
-    $logDetailsStmt->execute();
-    $logDetailsRow = $logDetailsStmt->get_result()->fetch_assoc();
-    $logDetailsStmt->close();
+        // Fetch payee name and company name for a readable log entry
+        $logDetailsStmt = $conn->prepare("
+            SELECT p.payee_name, c.company_name
+            FROM payees p, companies c
+            WHERE p.payee_id = ? AND c.company_id = ?
+        ");
+        $logDetailsStmt->bind_param("ii", $payee_id, $company_id);
+        $logDetailsStmt->execute();
+        $logDetailsRow = $logDetailsStmt->get_result()->fetch_assoc();
+        $logDetailsStmt->close();
 
-    $payeeName = mysqli_real_escape_string($conn, $logDetailsRow['payee_name'] ?? 'Unknown Payee');
-    $companyName = mysqli_real_escape_string($conn, $logDetailsRow['company_name'] ?? 'Unknown Company');
+        $payeeName = mysqli_real_escape_string($conn, $logDetailsRow['payee_name'] ?? 'Unknown Payee');
+        $companyName = mysqli_real_escape_string($conn, $logDetailsRow['company_name'] ?? 'Unknown Company');
 
-    $logQuery = "
-        INSERT INTO logs (log_action, log_user, log_details, log_date)
-        VALUES ('Expense updated', '$username', 'Payee: $payeeName, Company: $companyName (Expense ID: $expense_id)', NOW())
-    ";
-    mysqli_query($conn, $logQuery);
+        $logQuery = "
+            INSERT INTO logs (log_action, log_user, log_details, log_date)
+            VALUES ('Expense updated', '$username', 'Payee: $payeeName, Company: $companyName (Expense ID: $expense_id)', NOW())
+        ";
+        mysqli_query($conn, $logQuery);
 
-    $_SESSION['alert'] = ['type' => 'success', 'message' => 'Expense updated successfully!'];
-    header("Location: expenses.php");
-    exit();
-} else {
-    $_SESSION['alert'] = ['type' => 'error', 'message' => 'Error: Unable to update expense.'];
-}
+        $_SESSION['alert'] = ['type' => 'success', 'message' => 'Expense updated successfully!'];
+        header("Location: expenses.php");
+        exit();
+    } else {
+        $_SESSION['alert'] = ['type' => 'error', 'message' => 'Error: Unable to update expense.'];
+    }
 }
 
 $alert = $_SESSION['alert'] ?? null;
@@ -491,20 +491,12 @@ unset($_SESSION['alert']);
                                         document.getElementById('companyTin').value = tin;
                                     });
                                 }
-                            });
-                            </script>
-
-                                                        <script>
-                            document.addEventListener("DOMContentLoaded", function() {
+                                // Sync payee TIN on dropdown change
                                 const payeeSelect = document.getElementById('payeeSelect');
                                 const payeeTinDisplay = document.getElementById('payeeTinDisplay');
-
-                                // Pre-fill TIN on page load
                                 if (payeeSelect && payeeTinDisplay) {
                                     const selectedOption = payeeSelect.options[payeeSelect.selectedIndex];
                                     payeeTinDisplay.value = selectedOption.getAttribute('data-tin') || '';
-
-                                    // Update TIN when payee changes
                                     payeeSelect.addEventListener('change', function() {
                                         const tin = this.options[this.selectedIndex].getAttribute('data-tin') || '';
                                         payeeTinDisplay.value = tin;

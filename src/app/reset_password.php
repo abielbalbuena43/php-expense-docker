@@ -2,12 +2,6 @@
 ob_start();
 session_start();
 include "connection.php";
-include "mail_config.php";
-
-use PHPMailer\PHPMailer\PHPMailer;
-use PHPMailer\PHPMailer\Exception;
-
-require_once '../vendor/autoload.php';
 
 // Redirect if already logged in
 if (isset($_SESSION['user_id'])) {
@@ -34,7 +28,7 @@ if (isset($_GET['token']) && !empty($_GET['token'])) {
     $result = $stmt->get_result();
 
     if ($result->num_rows > 0) {
-        $user = $result->fetch_assoc();
+        $resetUser = $result->fetch_assoc();
         $validToken = true;
     } else {
         $message = 'This reset link is invalid or has expired. Please request a new one.';
@@ -258,7 +252,7 @@ if (isset($_POST['reset_password']) && $validToken) {
     </div>
     <?php endif; ?>
 
-    <?php if ($validToken && $user): ?>
+    <?php if ($validToken && $resetUser): ?>
     <form method="post">
         <input type="hidden" name="token" value="<?= htmlspecialchars($_GET['token']) ?>">
 

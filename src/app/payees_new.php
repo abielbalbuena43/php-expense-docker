@@ -56,12 +56,12 @@ if (isset($_POST['submit_payee'])) {
         ";
         mysqli_query($conn, $logQuery);
 
-        $_SESSION['alert'] = "Payee added successfully!";
+        $_SESSION['alert'] = ['type' => 'success', 'message' => 'Payee added successfully!'];
         header("Location: payees.php");
         exit();
     } else {
-        $_SESSION['alert'] = "error";
-        echo "Database Error: " . mysqli_error($conn);
+        $_SESSION['alert'] = ['type' => 'error', 'message' => 'Error: Unable to save payee.'];
+        error_log("Payee insert error: " . mysqli_error($conn));
     }
 }
 
@@ -76,11 +76,15 @@ unset($_SESSION['alert']);
         <div class="row-fluid" style="background-color: white; min-height: 600px; padding: 20px;">
             <div class="span12">
 
-                <?php if ($alert == "Payee added successfully!") { ?>
-                    <div class="alert alert-success">Payee added successfully!</div>
-                <?php } elseif ($alert == "error") { ?>
-                    <div class="alert alert-danger">Error: Unable to save payee.</div>
-                <?php } ?>
+                <?php if ($alert): ?>
+                    <?php
+                    $alertType = is_array($alert) ? ($alert['type'] ?? 'info') : 'success';
+                    $alertMessage = is_array($alert) ? ($alert['message'] ?? '') : $alert;
+                    ?>
+                    <div class="alert alert-<?= $alertType ?>">
+                        <?= htmlspecialchars($alertMessage) ?>
+                    </div>
+                <?php endif; ?>
 
                 <div class="widget-box" style="max-width: 800px; margin: 0 auto;">
                     <div class="widget-title">

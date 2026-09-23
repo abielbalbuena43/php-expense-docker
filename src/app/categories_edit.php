@@ -2,7 +2,6 @@
 ob_start();
 session_start();
 include "header.php";
-include "connection.php";
 
 if (!isset($_SESSION['user_id'])) {
     header("Location: login.php");
@@ -26,7 +25,7 @@ if (!isset($_GET['id']) || empty($_GET['id'])) {
 $category_id = intval($_GET['id']);
 
 // Fetch current category record
-$category_query = mysqli_query($conn, "SELECT * FROM expense_categories WHERE category_id = '$category_id' LIMIT 1");
+$category_query = mysqli_query($conn, "SELECT * FROM expense_categories WHERE category_id = $category_id LIMIT 1");
 if (mysqli_num_rows($category_query) === 0) {
     echo "<div class='alert alert-danger'>Category record not found.</div>";
     exit();
@@ -52,11 +51,11 @@ if (isset($_POST['update_category'])) {
         ";
         mysqli_query($conn, $logQuery);
 
-        $_SESSION['alert'] = "Category updated successfully!";
+        $_SESSION['alert'] = ['type' => 'success', 'message' => 'Category updated successfully!'];
         header("Location: categories.php");
         exit();
     } else {
-        $_SESSION['alert'] = "error_update";
+        $_SESSION['alert'] = ['type' => 'error', 'message' => 'Error: Unable to update category.'];
     }
 }
 
@@ -71,11 +70,15 @@ unset($_SESSION['alert']);
         <div class="row-fluid" style="background-color: white; min-height: 600px; padding: 20px;">
             <div class="span12">
 
-                <?php if ($alert == "Category updated successfully!") { ?>
-                    <div class="alert alert-success">Category updated successfully!</div>
-                <?php } elseif ($alert == "error_update") { ?>
-                    <div class="alert alert-danger">Error: Unable to update category.</div>
-                <?php } ?>
+                <?php if ($alert): ?>
+                    <?php
+                    $alertType = is_array($alert) ? ($alert['type'] ?? 'info') : 'success';
+                    $alertMessage = is_array($alert) ? ($alert['message'] ?? '') : $alert;
+                    ?>
+                    <div class="alert alert-<?= $alertType ?>">
+                        <?= htmlspecialchars($alertMessage) ?>
+                    </div>
+                <?php endif; ?>
 
                 <div class="widget-box" style="max-width: 800px; margin: 0 auto;">
                     <div class="widget-title">

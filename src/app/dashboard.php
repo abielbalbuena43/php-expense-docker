@@ -1,6 +1,5 @@
 <?php
 session_start();
-include "connection.php";
 include "header.php";
 
 if (!isset($_SESSION['user_id'])) {
@@ -111,7 +110,11 @@ $topCategoryWhere = str_replace("expense_date", "e.expense_date", $expenseWhereC
 $topCategoryTypes = $expenseWhereTypes;
 $topCategoryParams = $expenseWhereParams;
 
-if (!$isSuperAdmin) {
+if ($selectedCompanyId > 0) {
+    $topCategoryWhere .= " AND e.expense_company_id = ?";
+    $topCategoryParams[] = $selectedCompanyId;
+    $topCategoryTypes .= "i";
+} elseif (!$isSuperAdmin) {
     if (empty($assignedCompanyIds)) {
         $topCategoryWhere .= " AND 1=0";
     } else {
@@ -144,7 +147,13 @@ $topCategoryStmt->close();
 $budgetTypes = $isAnnual ? "i" : "ii";
 $budgetParams = $isAnnual ? [$selectedYear] : [intval($selectedMonth), $selectedYear];
 
-if (!$isSuperAdmin) {
+if ($selectedCompanyId > 0) {
+    $budgetSql = $isAnnual
+        ? "SELECT COALESCE(SUM(amount), 0) AS amount FROM budgets WHERE year = ? AND company_id = ?"
+        : "SELECT COALESCE(SUM(amount), 0) AS amount FROM budgets WHERE month = ? AND year = ? AND company_id = ?";
+    $budgetParams[] = $selectedCompanyId;
+    $budgetTypes .= "i";
+} elseif (!$isSuperAdmin) {
     if (empty($assignedCompanyIds)) {
         $budgetSql = $isAnnual
             ? "SELECT COALESCE(SUM(amount), 0) AS amount FROM budgets WHERE year = ? AND 1=0"
@@ -386,26 +395,8 @@ $selectedPeriodLabel = $isAnnual
     : date('F Y', mktime(0, 0, 0, intval($selectedMonth), 1, $selectedYear));
 ?>
 
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
-    <!-- CSS Files -->
-    <link rel="stylesheet" href="css/bootstrap.min.css" />
-    <link href="font-awesome/css/font-awesome.css" rel="stylesheet" />
-    <link rel="stylesheet" href="css/layout.css" />
-
-    <!-- Icons -->
-    <link href="font-awesome/css/font-awesome.css" rel="stylesheet" />
-
-    <!-- jQuery -->
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <title>Expense Tracker Dashboard</title>
 
     <style>
         /* ============================================

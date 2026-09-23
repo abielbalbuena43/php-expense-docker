@@ -2,7 +2,6 @@
 ob_start();
 session_start();
 include "header.php";
-include "connection.php";
 
 if (!isset($_SESSION['user_id'])) {
     header("Location: login.php");
@@ -19,7 +18,7 @@ if (!$isSuperAdmin && !$isAdmin) {
 
 // Check if category ID is provided
 if (!isset($_GET['id']) || empty($_GET['id'])) {
-    $_SESSION['alert'] = "invalid";
+    $_SESSION['alert'] = ['type' => 'error', 'message' => 'Invalid category ID.'];
     header("Location: categories.php");
     exit();
 }
@@ -38,7 +37,7 @@ $result = mysqli_query($conn, $query);
 
 // If no category found, redirect
 if (!$result || mysqli_num_rows($result) === 0) {
-    $_SESSION['alert'] = "not_found";
+    $_SESSION['alert'] = ['type' => 'error', 'message' => 'Category not found.'];
     header("Location: categories.php");
     exit();
 }
@@ -59,11 +58,11 @@ if (isset($_POST['confirm_delete'])) {
         ";
         mysqli_query($conn, $logQuery);
 
-        $_SESSION['alert'] = "Category deleted successfully!";
+        $_SESSION['alert'] = ['type' => 'success', 'message' => 'Category deleted successfully!'];
         header("Location: categories.php");
         exit();
     } else {
-        $_SESSION['alert'] = "error";
+        $_SESSION['alert'] = ['type' => 'error', 'message' => 'Error: Unable to delete category.'];
     }
 }
 
@@ -80,15 +79,15 @@ unset($_SESSION['alert']);
             <div class="span12">
 
                 <!-- Alert Messages -->
-                <?php if ($alert == "error") { ?>
-                    <div class="alert alert-danger">Error: Unable to delete category.</div>
-                <?php } elseif ($alert == "invalid") { ?>
-                    <div class="alert alert-warning">Invalid category ID.</div>
-                <?php } elseif ($alert == "not_found") { ?>
-                    <div class="alert alert-warning">Category not found.</div>
-                <?php } elseif ($alert == "Category deleted successfully!") { ?>
-                    <div class="alert alert-success">Category deleted successfully!</div>
-                <?php } ?>
+                <?php if ($alert): ?>
+                    <?php
+                    $alertType = is_array($alert) ? ($alert['type'] ?? 'info') : 'success';
+                    $alertMessage = is_array($alert) ? ($alert['message'] ?? '') : $alert;
+                    ?>
+                    <div class="alert alert-<?= $alertType ?>">
+                        <?= htmlspecialchars($alertMessage) ?>
+                    </div>
+                <?php endif; ?>
 
                 <!-- Delete Confirmation -->
                 <div class="widget-box" style="max-width: 600px; margin: 0 auto;">
@@ -111,12 +110,12 @@ unset($_SESSION['alert']);
                         </table>
 
                         <form method="post">
-                        <div class="form-actions action-buttons">
-                            <button type="submit" name="confirm_delete" class="btn btn-danger">
-                                <i class="icon-trash"></i> Confirm Delete
-                            </button>
-                            <a href="categories.php" class="btn btn-secondary">Cancel</a>
-                        </div>
+                            <div class="form-actions action-buttons">
+                                <button type="submit" name="confirm_delete" class="btn btn-danger">
+                                    <i class="icon-trash"></i> Confirm Delete
+                                </button>
+                                <a href="categories.php" class="btn btn-secondary">Cancel</a>
+                            </div>
                         </form>
                     </div>
                 </div>

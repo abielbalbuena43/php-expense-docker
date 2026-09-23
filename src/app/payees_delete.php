@@ -19,7 +19,7 @@ if (!$isSuperAdmin && !$isAdmin) {
 
 // Check if a payee ID is provided
 if (!isset($_GET['id']) || empty($_GET['id'])) {
-    $_SESSION['alert'] = "invalid";
+    $_SESSION['alert'] = ['type' => 'error', 'message' => 'Invalid payee ID.'];
     header("Location: payees.php");
     exit();
 }
@@ -44,7 +44,7 @@ $result = mysqli_query($conn, $query);
 
 // If no payee found, redirect
 if (!$result || mysqli_num_rows($result) === 0) {
-    $_SESSION['alert'] = "not_found";
+    $_SESSION['alert'] = ['type' => 'error', 'message' => 'Payee not found.'];
     header("Location: payees.php");
     exit();
 }
@@ -65,11 +65,11 @@ if (isset($_POST['confirm_delete'])) {
         ";
         mysqli_query($conn, $logQuery);
 
-        $_SESSION['alert'] = "Payee deleted successfully!";
+        $_SESSION['alert'] = ['type' => 'success', 'message' => 'Payee deleted successfully!'];
         header("Location: payees.php");
         exit();
     } else {
-        $_SESSION['alert'] = "error";
+        $_SESSION['alert'] = ['type' => 'error', 'message' => 'Error: Unable to delete payee.'];
     }
 }
 
@@ -90,13 +90,15 @@ if (isset($_SESSION['alert'])) {
             <div class="span12">
 
                 <!-- Alert Messages -->
-                <?php if ($alert == "error") { ?>
-                    <div class="alert alert-danger">Error: Unable to delete payee.</div>
-                <?php } elseif ($alert == "invalid") { ?>
-                    <div class="alert alert-warning">Invalid payee ID.</div>
-                <?php } elseif ($alert == "not_found") { ?>
-                    <div class="alert alert-warning">Payee not found.</div>
-                <?php } ?>
+                <?php if ($alert): ?>
+                    <?php
+                    $alertType = is_array($alert) ? ($alert['type'] ?? 'info') : 'success';
+                    $alertMessage = is_array($alert) ? ($alert['message'] ?? '') : $alert;
+                    ?>
+                    <div class="alert alert-<?= $alertType ?>">
+                        <?= htmlspecialchars($alertMessage) ?>
+                    </div>
+                <?php endif; ?>
 
                 <!-- Delete Confirmation -->
                 <div class="widget-box" style="max-width: 800px; margin: 0 auto;">
@@ -122,19 +124,19 @@ if (isset($_SESSION['alert'])) {
                             </tr>
                             <tr>
                                 <th>TIN</th>
-                                <td><?= htmlspecialchars($payee['payee_tin']) ?></td>
+                                <td><?= htmlspecialchars($payee['payee_tin'] ?? '') ?></td>
                             </tr>
                             <tr>
                                 <th>Category</th>
-                                <td><?= htmlspecialchars($payee['payee_category']) ?></td>
+                                <td><?= htmlspecialchars($payee['payee_category'] ?? '') ?></td>
                             </tr>
                             <tr>
                                 <th>Address 1</th>
-                                <td><?= htmlspecialchars($payee['payee_address1']) ?></td>
+                                <td><?= htmlspecialchars($payee['payee_address1'] ?? '') ?></td>
                             </tr>
                             <tr>
                                 <th>Address 2</th>
-                                <td><?= htmlspecialchars($payee['payee_address2']) ?></td>
+                                <td><?= htmlspecialchars($payee['payee_address2'] ?? '') ?></td>
                             </tr>
                             <tr>
                                 <th>Created At</th>

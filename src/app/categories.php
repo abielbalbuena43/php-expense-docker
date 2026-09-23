@@ -1,6 +1,5 @@
 <?php
 session_start();
-include "connection.php";
 include "header.php";
 
 if (!isset($_SESSION['user_id'])) {
@@ -32,28 +31,8 @@ LIMIT 100
 $result = $conn->query($sql);
 ?>
 
-<!DOCTYPE html>
-<html lang="en">
-
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<!-- Core CSS -->
-<link rel="stylesheet" href="css/bootstrap.min.css">
 <link rel="stylesheet" href="css/layout.css">
-
-<!-- Icons -->
-<link href="font-awesome/css/font-awesome.css" rel="stylesheet">
-
-<!-- jQuery -->
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-
-<title>Categories List</title>
-
-</head>
-
-<body>
 
 <div id="content">
 
@@ -155,5 +134,4 @@ $(document).on("click", ".header-actions a", function(e){
 });
 </script>
 
-</body>
-</html>
+<?php include "footer.php"; ?>

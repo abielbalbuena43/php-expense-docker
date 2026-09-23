@@ -1,6 +1,5 @@
 <?php
 session_start();
-include "connection.php";
 include "header.php";
 
 if (!isset($_SESSION['user_id'])) {
@@ -144,7 +143,8 @@ if (isset($_POST['submit_budget'])) {
 
         } else {
 
-            setAlert('error', 'Database error: ' . $conn->error);
+            error_log("Budget insert error: " . $conn->error);
+            setAlert('error', 'Error: Unable to save budget. Please try again.');
 
         }
 
@@ -208,11 +208,6 @@ if (isset($_POST['submit_budget'])) {
                                 <div class="controls">
                                     <select name="month" class="span11" required>
                                         <?php
-                                        $monthsArr = [
-                                            1=>"January",2=>"February",3=>"March",4=>"April",
-                                            5=>"May",6=>"June",7=>"July",8=>"August",
-                                            9=>"September",10=>"October",11=>"November",12=>"December"
-                                        ];
                                         foreach ($monthsArr as $num=>$name) {
                                             echo "<option value='$num'>$name</option>";
                                         }

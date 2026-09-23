@@ -1,7 +1,6 @@
 <?php
 session_start();
 include "header.php";
-include "connection.php";
 
 if (!isset($_SESSION['user_id'])) {
     header("Location: login.php");
@@ -84,7 +83,7 @@ if (isset($_POST['update_company'])) {
     $special_fields = mysqli_real_escape_string($conn, trim($_POST['special_fields']));
 
     if ($company_name === '' || $company_tin === '') {
-        $_SESSION['alert'] = "invalid_company_lookup";
+        $_SESSION['alert'] = ['type' => 'error', 'message' => 'Enter the company as TIN - Company Name or choose one from the suggestions.'];
     } else {
         // Update company data in the database
         $update_query = "
@@ -113,11 +112,11 @@ if (isset($_POST['update_company'])) {
             ";
             mysqli_query($conn, $logQuery);
 
-            $_SESSION['alert'] = "Company updated successfully!";
+            $_SESSION['alert'] = ['type' => 'success', 'message' => 'Company updated successfully!'];
             header("Location: companies.php");
             exit();
         } else {
-            $_SESSION['alert'] = "error_update";
+            $_SESSION['alert'] = ['type' => 'error', 'message' => 'Error: Unable to update company.'];
         }
     }
 }
@@ -151,13 +150,15 @@ if ($companyOptionsResult) {
             <div class="span12">
 
                 <!-- Display success or error alerts -->
-                <?php if ($alert == "Company updated successfully!") { ?>
-                    <div class="alert alert-success">Company updated successfully!</div>
-                <?php } elseif ($alert == "invalid_company_lookup") { ?>
-                    <div class="alert alert-danger">Enter the company as TIN - Company Name or choose one from the suggestions.</div>
-                <?php } elseif ($alert == "error_update") { ?>
-                    <div class="alert alert-danger">Error: Unable to update company.</div>
-                <?php } ?>
+                <?php if ($alert): ?>
+                    <?php
+                    $alertType = is_array($alert) ? ($alert['type'] ?? 'info') : 'success';
+                    $alertMessage = is_array($alert) ? ($alert['message'] ?? '') : $alert;
+                    ?>
+                    <div class="alert alert-<?= $alertType ?>">
+                        <?= htmlspecialchars($alertMessage) ?>
+                    </div>
+                <?php endif; ?>
 
                 <!-- Edit Company Form -->
                 <div class="widget-box" style="max-width: 800px; margin: 0 auto;">
@@ -273,8 +274,6 @@ if ($companyOptionsResult) {
     </div>
 </div>
 
-<?php include "footer.php"; ?>
-
 <script>
 const companies = <?= json_encode($companies) ?>;
 
@@ -343,3 +342,5 @@ document.addEventListener('DOMContentLoaded', function() {
     updateCompanySuggestions();
 });
 </script>
+
+<?php include "footer.php"; ?>

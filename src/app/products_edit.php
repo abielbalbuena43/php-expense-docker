@@ -2,7 +2,6 @@
 ob_start();
 session_start();
 include "header.php"; 
-include "connection.php";
 
 if (!isset($_SESSION['user_id'])) {
     header("Location: login.php");
@@ -27,7 +26,7 @@ $product_id = intval($_GET['id']);
 // Fetch product record
 $query = mysqli_query($conn, "SELECT * FROM expense_products WHERE product_id = '$product_id' LIMIT 1");
 if (mysqli_num_rows($query) === 0) {
-    $_SESSION['alert'] = "not_found";
+    $_SESSION['alert'] = ['type' => 'error', 'message' => 'Product not found.'];
     header("Location: products.php");
     exit();
 }
@@ -54,14 +53,14 @@ if (isset($_POST['update_product'])) {
             ";
             mysqli_query($conn, $logQuery);
 
-            $_SESSION['alert'] = "Product updated successfully!";
+            $_SESSION['alert'] = ['type' => 'success', 'message' => 'Product updated successfully!'];
             header("Location: products.php");
             exit();
         } else {
-            $_SESSION['alert'] = "error_update";
+            $_SESSION['alert'] = ['type' => 'error', 'message' => 'Error: Unable to update product.'];
         }
     } else {
-        $_SESSION['alert'] = "empty_fields";
+        $_SESSION['alert'] = ['type' => 'warning', 'message' => 'Please fill in all required fields.'];
     }
 }
 
@@ -77,15 +76,15 @@ unset($_SESSION['alert']);
             <div class="span12">
 
                 <!-- Alert Messages -->
-                <?php if ($alert == "Product updated successfully!") { ?>
-                    <div class="alert alert-success">Product updated successfully!</div>
-                <?php } elseif ($alert == "error_update") { ?>
-                    <div class="alert alert-danger">Error: Unable to update product.</div>
-                <?php } elseif ($alert == "empty_fields") { ?>
-                    <div class="alert alert-warning">Please fill in all required fields.</div>
-                <?php } elseif ($alert == "not_found") { ?>
-                    <div class="alert alert-warning">Product not found.</div>
-                <?php } ?>
+                <?php if ($alert): ?>
+                    <?php
+                    $alertType = is_array($alert) ? ($alert['type'] ?? 'info') : 'success';
+                    $alertMessage = is_array($alert) ? ($alert['message'] ?? '') : $alert;
+                    ?>
+                    <div class="alert alert-<?= $alertType ?>">
+                        <?= htmlspecialchars($alertMessage) ?>
+                    </div>
+                <?php endif; ?>
 
                 <div class="widget-box" style="max-width: 800px; margin: 0 auto;">
                     <div class="widget-title">

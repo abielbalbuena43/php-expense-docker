@@ -1,6 +1,5 @@
 <?php
 session_start();
-include "connection.php";
 include "header.php";
 
 
@@ -146,23 +145,8 @@ $months = [
 ];
 ?>
 
-<!DOCTYPE html>
-<html lang="en">
-
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<link rel="stylesheet" href="css/bootstrap.min.css">
 <link rel="stylesheet" href="css/layout.css">
-<link href="font-awesome/css/font-awesome.css" rel="stylesheet">
-
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-
-<title>Budgets List</title>
-</head>
-
-<body>
 
 <div id="content">
 
@@ -336,5 +320,4 @@ $(document).on("click", ".clickable-row", function(){
 });
 </script>
 
-</body>
-</html>
+<?php include "footer.php"; ?>

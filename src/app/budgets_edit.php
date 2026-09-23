@@ -2,7 +2,6 @@
 ob_start();
 session_start();
 include "header.php";
-include "connection.php";
 
 if (!isset($_SESSION['user_id'])) {
     header("Location: login.php");
@@ -40,7 +39,7 @@ $budget_id = intval($_GET['id']);
 /* -------------------------------
    FETCH RECORD
 --------------------------------*/
-$budget_query = mysqli_query($conn, "SELECT * FROM budgets WHERE budget_id = '$budget_id' LIMIT 1");
+$budget_query = mysqli_query($conn, "SELECT * FROM budgets WHERE budget_id = $budget_id LIMIT 1");
 
 if (mysqli_num_rows($budget_query) === 0) {
     setAlert('error', 'Budget record not found.');
@@ -158,7 +157,8 @@ if (isset($_POST['update_budget'])) {
             exit();
 
         } else {
-            setAlert('error', 'Error updating budget: ' . $conn->error);
+            error_log("Budget update error: " . $conn->error);
+            setAlert('error', 'Error: Unable to update budget. Please try again.');
         }
 
         $updateStmt->close();
@@ -181,7 +181,7 @@ $type = $alert['type'] ?? 'info';
 $message = $alert['message'] ?? '';
 unset($_SESSION['alert']);
 ?>
-<div class="alert alert-<?= $type ?>">
+<div class="alert alert-<?= $type === 'error' ? 'danger' : $type ?>">
 <?= htmlspecialchars($message) ?>
 </div>
 <?php endif; ?>

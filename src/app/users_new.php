@@ -30,8 +30,6 @@ if (isset($_GET['success'])) {
     }
 }
 
-include "connection.php";
-
 // ============================================
 // HANDLE FORM SUBMISSION
 // ============================================
@@ -53,42 +51,42 @@ if (isset($_POST['submit_user'])) {
     } else {
         $emailCheck->close();
 
-    // Hash password for security
-    $hashed_password = password_hash($password, PASSWORD_DEFAULT);
+        // Hash password for security
+        $hashed_password = password_hash($password, PASSWORD_DEFAULT);
 
-    // Use prepared statement to prevent SQL injection
-    $stmt = $conn->prepare("INSERT INTO users (username, password, fullname, email, role, created_at) VALUES (?, ?, ?, ?, ?, NOW())");
-    $stmt->bind_param("sssss", $username, $hashed_password, $fullname, $email, $role);
+        // Use prepared statement to prevent SQL injection
+        $stmt = $conn->prepare("INSERT INTO users (username, password, fullname, email, role, created_at) VALUES (?, ?, ?, ?, ?, NOW())");
+        $stmt->bind_param("sssss", $username, $hashed_password, $fullname, $email, $role);
 
-    if ($stmt->execute()) {
-        $new_user_id = $stmt->insert_id;
+        if ($stmt->execute()) {
+            $new_user_id = $stmt->insert_id;
 
-        // Save company assignments for admin and user roles
-        if (!empty($_POST['assigned_companies']) && $role !== 'super_admin') {
-            $companyStmt = $conn->prepare("INSERT INTO user_companies (user_id, company_id) VALUES (?, ?)");
-            foreach ($_POST['assigned_companies'] as $company_id) {
-                $company_id = intval($company_id);
-                $companyStmt->bind_param("ii", $new_user_id, $company_id);
-                $companyStmt->execute();
+            // Save company assignments for admin and user roles
+            if (!empty($_POST['assigned_companies']) && $role !== 'super_admin') {
+                $companyStmt = $conn->prepare("INSERT INTO user_companies (user_id, company_id) VALUES (?, ?)");
+                foreach ($_POST['assigned_companies'] as $company_id) {
+                    $company_id = intval($company_id);
+                    $companyStmt->bind_param("ii", $new_user_id, $company_id);
+                    $companyStmt->execute();
+                }
+                $companyStmt->close();
             }
-            $companyStmt->close();
+
+            $adminUsername = mysqli_real_escape_string($conn, $_SESSION['username']);
+            $newUsername = mysqli_real_escape_string($conn, $username);
+
+            $logQuery = "
+                INSERT INTO logs (log_action, log_user, log_details, log_date)
+                VALUES ('User created', '$adminUsername', 'User: $newUsername, Role: $role (User ID: $new_user_id)', NOW())
+            ";
+            mysqli_query($conn, $logQuery);
+
+            setAlert('success', 'User added successfully!');
+            header("Location: users.php?success=added");
+            exit();
+        } else {
+            $error = "Error: Unable to save user. " . $stmt->error;
         }
-
-        $adminUsername = mysqli_real_escape_string($conn, $_SESSION['username']);
-        $newUsername = mysqli_real_escape_string($conn, $username);
-
-        $logQuery = "
-            INSERT INTO logs (log_action, log_user, log_details, log_date)
-            VALUES ('User created', '$adminUsername', 'User: $newUsername, Role: $role (User ID: $new_user_id)', NOW())
-        ";
-        mysqli_query($conn, $logQuery);
-
-        setAlert('success', 'User added successfully!');
-        header("Location: users.php?success=added");
-        exit();
-    } else {
-        $error = "Error: Unable to save user. " . $stmt->error;
-    }
     } // close email check else
 }
 ?>

@@ -1,6 +1,11 @@
 <?php
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+use PhpOffice\PhpSpreadsheet\Style\Alignment;
+
 session_start();
 include "connection.php";
+require_once '../vendor/autoload.php';
 
 if (!isset($_SESSION['user_id'])) {
     header("Location: login.php");
@@ -65,10 +70,7 @@ while ($row = $result->fetch_assoc()) {
 }
 $stmt->close();
 
-// Use PhpSpreadsheet
-use PhpOffice\PhpSpreadsheet\Spreadsheet;
-use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
-use PhpOffice\PhpSpreadsheet\Style\Alignment;  // For layouting
+// Generate spreadsheet
 
 $spreadsheet = new Spreadsheet();
 $sheet = $spreadsheet->getActiveSheet();
@@ -91,7 +93,7 @@ $rowNumber = 2;
 foreach ($data as $row) {
     $sheet->setCellValue('A' . $rowNumber, $row['expense_id']);
     $sheet->setCellValue('B' . $rowNumber, $row['expense_or_number']);
-    $sheet->setCellValue('C' . $rowNumber, $row['expense_date']);
+    $sheet->setCellValue('C' . $rowNumber, date('M d, Y', strtotime($row['expense_date'])));
     $sheet->setCellValue('D' . $rowNumber, $row['expense_total_receipt_amount']);
     $sheet->setCellValue('E' . $rowNumber, $row['company_name']);
     $sheet->setCellValue('F' . $rowNumber, $row['category_name']);

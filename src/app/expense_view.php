@@ -52,7 +52,7 @@ $query = "
     LEFT JOIN resellers r ON e.expense_reseller_id = r.reseller_id
     LEFT JOIN expense_end_users eu ON e.expense_user_id = eu.end_user_id
     LEFT JOIN expense_products pr ON e.expense_product_id = pr.product_id
-    WHERE e.expense_id = '$expense_id'
+    WHERE e.expense_id = $expense_id
     LIMIT 1
 ";
 $result = mysqli_query($conn, $query);
@@ -143,20 +143,20 @@ if (!$isSuperAdmin) {
                             </div>
 
                             <!-- End User -->
-                                <div class="control-group">
-                                    <label class="control-label">End User:</label>
-                                    <div class="controls">
-                                        <input type="text" class="span11" value="<?= htmlspecialchars($expense['end_user_name'] ?? 'None') ?>" disabled>
-                                    </div>
+                            <div class="control-group">
+                                <label class="control-label">End User:</label>
+                                <div class="controls">
+                                    <input type="text" class="span11" value="<?= htmlspecialchars($expense['end_user_name'] ?? 'None') ?>" disabled>
                                 </div>
+                            </div>
 
-                                <!-- Product -->
-                                <div class="control-group">
-                                    <label class="control-label">Product:</label>
-                                    <div class="controls">
-                                        <input type="text" class="span11" value="<?= htmlspecialchars($expense['product_name'] ?? 'None') ?>" disabled>
-                                    </div>
+                            <!-- Product -->
+                            <div class="control-group">
+                                <label class="control-label">Product:</label>
+                                <div class="controls">
+                                    <input type="text" class="span11" value="<?= htmlspecialchars($expense['product_name'] ?? 'None') ?>" disabled>
                                 </div>
+                            </div>
 
                             <!-- OR Number -->
                             <div class="control-group">
@@ -173,8 +173,6 @@ if (!$isSuperAdmin) {
                                     <input type="text" class="span11" value="<?= date('M d, Y', strtotime($expense['expense_date'])) ?>" disabled>
                                 </div>
                             </div>
-
-                            <!-- ===== New Fields Added Below ===== -->
 
                             <!-- Service Charge -->
                             <div class="control-group">
@@ -223,8 +221,6 @@ if (!$isSuperAdmin) {
                                     <input type="text" class="span11" value="<?= htmlspecialchars($expense['expense_vat_rate']) ?>" disabled>
                                 </div>
                             </div>
-
-                            <!-- ===== End of Added Fields ===== -->
 
                             <!-- Total Purchases -->
                             <div class="control-group">

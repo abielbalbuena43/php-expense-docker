@@ -1,8 +1,114 @@
 <?php
+use PHPMailer\PHPMailer\PHPMailer;
+use PHPMailer\PHPMailer\Exception;
+
 ob_start();
 session_start();
 include "header.php"; 
 include "connection.php";
+include "mail_config.php";
+require_once '../vendor/autoload.php';
+
+function notifySuperAdmin($conn, $expenseData) {
+    // Only notify if amount meets threshold
+    if (!NOTIFY_ALL && $expenseData['amount'] < NOTIFY_THRESHOLD) {
+        return;
+    }
+
+    // Fetch all super admin emails
+    $stmt = $conn->prepare("SELECT fullname, email FROM users WHERE role = 'super_admin' AND email IS NOT NULL");
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $admins = [];
+    while ($row = $result->fetch_assoc()) {
+        $admins[] = $row;
+    }
+    $stmt->close();
+
+    if (empty($admins)) return;
+
+    $mail = new PHPMailer(true);
+    try {
+        $mail->isSMTP();
+        $mail->Host       = MAIL_HOST;
+        $mail->SMTPAuth   = true;
+        $mail->Username   = MAIL_USERNAME;
+        $mail->Password   = MAIL_PASSWORD;
+        $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+        $mail->Port       = MAIL_PORT;
+        $mail->SMTPOptions = [
+            'ssl' => [
+                'verify_peer' => false,
+                'verify_peer_name' => false,
+                'allow_self_signed' => true
+            ]
+        ];
+
+        $mail->setFrom(MAIL_FROM_EMAIL, MAIL_FROM_NAME);
+
+        foreach ($admins as $admin) {
+            $mail->addAddress($admin['email'], $admin['fullname']);
+        }
+
+        $mail->isHTML(true);
+        $mail->Subject = 'New Expense Logged — ₱' . number_format($expenseData['amount'], 2);
+        $mail->Body = "
+            <div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;'>
+                <h2 style='color: #4e54c8;'>New Expense Logged</h2>
+                <p>A new expense has been submitted that exceeds the ₱" . number_format(NOTIFY_THRESHOLD, 0) . " threshold.</p>
+                <table style='width:100%; border-collapse:collapse; margin:20px 0;'>
+                    <tr style='background:#f5f5f5;'>
+                        <td style='padding:10px; font-weight:bold;'>Submitted By</td>
+                        <td style='padding:10px;'>{$expenseData['submitted_by']}</td>
+                    </tr>
+                    <tr>
+                        <td style='padding:10px; font-weight:bold;'>Payee</td>
+                        <td style='padding:10px;'>{$expenseData['payee']}</td>
+                    </tr>
+                    <tr style='background:#f5f5f5;'>
+                        <td style='padding:10px; font-weight:bold;'>Company</td>
+                        <td style='padding:10px;'>{$expenseData['company']}</td>
+                    </tr>
+                    <tr>
+                        <td style='padding:10px; font-weight:bold;'>Category</td>
+                        <td style='padding:10px;'>{$expenseData['category']}</td>
+                    </tr>
+                    <tr style='background:#f5f5f5;'>
+                        <td style='padding:10px; font-weight:bold;'>Date</td>
+                        <td style='padding:10px;'>{$expenseData['date']}</td>
+                    </tr>
+                    <tr>
+                        <td style='padding:10px; font-weight:bold;'>OR Number</td>
+                        <td style='padding:10px;'>{$expenseData['or_number']}</td>
+                    </tr>
+                    <tr style='background:#f5f5f5;'>
+                        <td style='padding:10px; font-weight:bold; font-size:16px;'>Total Amount</td>
+                        <td style='padding:10px; font-size:16px; color:#10b981; font-weight:bold;'>
+                            ₱" . number_format($expenseData['amount'], 2) . "
+                        </td>
+                    </tr>
+                </table>
+                <div style='text-align:center; margin:20px 0;'>
+                    <a href='" . APP_URL . "/expenses.php'
+                       style='background:linear-gradient(to right, #4e54c8, #8f94fb);
+                              color:white; padding:12px 25px;
+                              text-decoration:none; border-radius:8px;
+                              font-weight:bold;'>
+                        View Expenses
+                    </a>
+                </div>
+                <hr style='border:none; border-top:1px solid #eee; margin:20px 0;'>
+                <p style='color:#aaa; font-size:12px;'>ITW Expense Management System</p>
+            </div>
+        ";
+        $mail->AltBody = "New expense of ₱" . number_format($expenseData['amount'], 2) . " submitted by {$expenseData['submitted_by']} for {$expenseData['payee']}.";
+
+        $mail->send();
+    } catch (Exception $e) {
+        // Silent fail — don't block expense saving if email fails
+        error_log("Expense notification failed: " . $mail->ErrorInfo);
+    }
+}
 
 if (!isset($_SESSION['user_id'])) {
     header("Location: login.php");
@@ -79,22 +185,22 @@ if (isset($_POST['submit_expense'])) {
     }
 
     if ($company_id === 0) {
-        $_SESSION['alert'] = "error";
-        header("Location: expense_new.php");
-        exit();
-    }
-    if ($payee_id === 0 || $category_id === 0) {
-        $_SESSION['alert'] = ['type' => 'error', 'message' => 'Please select a valid payee and category.'];
+        $_SESSION['alert'] = ['type' => 'error', 'message' => 'No valid company assigned. Please contact your administrator.'];
         header("Location: expense_new.php");
         exit();
     }
     $payee_id = intval($_POST['expense_payee_id']);
     $category_id = intval($_POST['expense_category_id']);
+    if ($payee_id === 0 || $category_id === 0) {
+        $_SESSION['alert'] = ['type' => 'error', 'message' => 'Please select a valid payee and category.'];
+        header("Location: expense_new.php");
+        exit();
+    }
     $reseller_id = !empty($_POST['expense_reseller_id']) ? mysqli_real_escape_string($conn, $_POST['expense_reseller_id']) : NULL;
     $user_id = !empty($_POST['expense_user_id']) ? mysqli_real_escape_string($conn, $_POST['expense_user_id']) : NULL;
     $product_id = !empty($_POST['expense_product_id']) ? mysqli_real_escape_string($conn, $_POST['expense_product_id']) : NULL;
     $or_number = mysqli_real_escape_string($conn, $_POST['expense_or_number']);
-        $expense_date = mysqli_real_escape_string($conn, $_POST['expense_date']);
+    $expense_date = mysqli_real_escape_string($conn, $_POST['expense_date']);
     if (empty($expense_date)) {
         $_SESSION['alert'] = ['type' => 'error', 'message' => 'Please enter a valid expense date.'];
         header("Location: expense_new.php");
@@ -206,6 +312,27 @@ if (isset($_POST['submit_expense'])) {
             VALUES ('Expense created', '$username', 'Payee: $payeeName, Company: $companyName (Expense ID: $expense_id)', NOW())
         ";
         mysqli_query($conn, $logQuery);
+
+        // Fetch category name for notification
+        $notifStmt = $conn->prepare("
+            SELECT p.payee_name, c.company_name, cat.category_name
+            FROM payees p, companies c, expense_categories cat
+            WHERE p.payee_id = ? AND c.company_id = ? AND cat.category_id = ?
+        ");
+        $notifStmt->bind_param("iii", $payee_id, $company_id, $category_id);
+        $notifStmt->execute();
+        $notifRow = $notifStmt->get_result()->fetch_assoc();
+        $notifStmt->close();
+
+        notifySuperAdmin($conn, [
+            'amount'       => $total_receipt_amount,
+            'submitted_by' => $_SESSION['fullname'] ?? $_SESSION['username'],
+            'payee'        => $notifRow['payee_name'] ?? 'Unknown',
+            'company'      => $notifRow['company_name'] ?? 'Unknown',
+            'category'     => $notifRow['category_name'] ?? 'Unknown',
+            'date'         => $expense_date,
+            'or_number'    => $or_number ?: 'N/A'
+        ]);
 
         $_SESSION['alert'] = "Expense added successfully!";
         header("Location: expenses.php");
