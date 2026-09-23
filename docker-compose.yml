@@ -8,6 +8,12 @@ services:
       - "80:80"
     volumes:
       - ./src:/var/www/html
+    environment:
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_USER: root
+      DB_PASSWORD: root_password
+      DB_NAME: php_expense
     depends_on:
       - db
 

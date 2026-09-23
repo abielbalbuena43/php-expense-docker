@@ -1,1 +1,17 @@
-src/connection.php
+/vendor/
+.env
+.env.*
+node_modules/
+.DS_Store
+Thumbs.db
+
+# Database dumps
+php_expense.sql
+*.sql
+
+# Local backup / temporary files
+connection_backup.txt
+app.zip
+
+# Aiven SSL certificate
+aiven-ca.pem

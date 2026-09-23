@@ -1,0 +1,9 @@
+.git
+.gitignore
+
+php_expense.sql
+connection_backup.txt
+app.zip
+
+.env
+.env.*
